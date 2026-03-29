@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BrewMap">
@@ -10,10 +10,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
 <title>BrewMap — Discover Local Coffee Flavor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
   :root {
     --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--surface3:#2e2e2e;--border:#333;
@@ -145,9 +147,10 @@
   .refresh-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s;-webkit-appearance:none}
   .refresh-btn:active{border-color:var(--accent);color:var(--accent)}
   .status-bar{padding:6px 12px;padding-bottom:calc(6px + var(--safe-bottom));background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;justify-content:space-between;align-items:center}
-  .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1) saturate(0.3)}
+  /* Using CartoDB dark tiles instead of CSS filter inversion */
   .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
-  .leaflet-control-attribution{display:none!important}
+  .leaflet-control-attribution{font-size:9px!important;background:rgba(15,15,15,0.7)!important;color:var(--text3)!important}
+  .leaflet-control-attribution a{color:var(--accent)!important}
 
   /* ===== FIND NEAR ME FLOATING BUTTON ===== */
   .find-near-me-btn{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:800;background:linear-gradient(135deg,var(--accent),#b8863a);color:#000;border:none;padding:12px 24px;border-radius:28px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(212,160,83,0.4),0 2px 8px rgba(0,0,0,0.3);-webkit-appearance:none;transition:all 0.2s;white-space:nowrap}
@@ -335,6 +338,7 @@ let allShops = [], filteredShops = [];
 let activeFlavorFilters = new Set();
 let markers = {}, selectedShopId = null, radiusMiles = 2, currentCity = 'nyc';
 let hasUsedLocation = false;
+let currentScanController = null;
 
 // =========== INIT ===========
 document.addEventListener('DOMContentLoaded', () => {
@@ -381,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initMap() {
   map = L.map('map', { zoomControl: true, attributionControl: false }).setView([40.7128, -74.0060], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>' }).addTo(map);
   // Fix iOS map rendering issues
   setTimeout(() => map.invalidateSize(), 100);
   window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
@@ -483,6 +487,9 @@ function switchCity(cityKey) {
   const city = CITIES[cityKey];
   if (!city) return;
 
+  // Close any open detail panel from previous city
+  closeDetail();
+
   if (cityKey === 'current') {
     findNearMe();
     return;
@@ -516,6 +523,15 @@ function updateCityButtons(idx) {
 
 // =========== SCAN (Adaptive) ===========
 async function scanArea() {
+  if (!userLat || !userLng) {
+    console.warn('scanArea called without coordinates');
+    return;
+  }
+  // Abort any in-flight scan
+  if (currentScanController) { currentScanController.abort(); }
+  currentScanController = new AbortController();
+  const scanSignal = currentScanController.signal;
+
   const scanBtn = document.getElementById('scanBtn');
   scanBtn.disabled = true;
   lastScanRadius = radiusMiles;
@@ -545,7 +561,7 @@ async function scanArea() {
         const q2 = '[out:json][timeout:25];(node["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast|Bean|bean|Brew|brew|Latte|latte"](around:'+rm+','+userLat+','+userLng+');way["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
         for (const apiUrl of overpassUrls) {
           try {
-            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.timeout(30000)});
+            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.timeout(10000)});
             if (!r2.ok) continue;
             const d2 = await r2.json();
             if (d2.elements) { allElements = allElements.concat(d2.elements); break; }
@@ -641,7 +657,7 @@ function generateReviews(shopName, fp, rng, total) {
     'Hidden gem! The cold brew is '+f1+' and '+f2+'. Way better than chain coffee.',
     'Their house roast is perfectly '+f1+'. The '+f2+' notes really shine. A must-try.'
   ];
-  const sources = ['Google Reviews','Yelp','Google Reviews','TripAdvisor','Yelp'];
+  const sources = ['AI Estimate','AI Estimate','AI Estimate','AI Estimate','AI Estimate'];
   return templates.sort(()=>rng()-0.5).slice(0,4).map(text=>({text,source:sources[Math.floor(rng()*sources.length)],rating:Math.round((3.5+rng()*1.5)*10)/10,flavorsFound:top}));
 }
 
@@ -655,7 +671,7 @@ function renderShopList() {
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
     '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI flavor analysis from '+shop.reviewCount+' reviews</div></div>'
+    '<div class="ai-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)</div></div>'
   ).join('');
 }
 
