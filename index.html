@@ -50,13 +50,13 @@
   .location-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-  .header-row2{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .header-row2{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;overflow:visible}
   .city-selector{display:flex;align-items:center;gap:5px;flex-shrink:0;position:relative}
   .city-search-wrap{position:relative;display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:0 10px;gap:5px;min-width:140px;transition:border-color 0.2s}
   .city-search-wrap:focus-within{border-color:var(--accent)}
   .city-search-input{background:none;border:none;outline:none;color:var(--text);font-size:12px;font-family:inherit;padding:6px 0;width:100px}
   .city-search-input::placeholder{color:var(--text3)}
-  .city-search-results{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:200px;overflow-y:auto;z-index:2000;display:none;box-shadow:var(--shadow)}
+  .city-search-results{position:absolute;top:100%;left:0;min-width:250px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:200px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.6)}
   .city-search-results.open{display:block}
   .city-result{padding:8px 12px;cursor:pointer;font-size:12px;color:var(--text2);transition:background 0.15s;border-bottom:1px solid var(--border)}
   .city-result:last-child{border-bottom:none}
@@ -663,7 +663,7 @@ async function scanArea() {
     // Phase 1: Standard cafe/coffee query
     const q1 = '[out:json][timeout:25];(node["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');way["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');node["cuisine"~"coffee"](around:'+rm+','+userLat+','+userLng+');node["shop"="coffee"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
     let d1;
-    const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+    const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.openstreetmap.ru/api/interpreter'];
     for (const apiUrl of overpassUrls) {
       try {
         const r1 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1),signal:AbortSignal.any([scanAbort, AbortSignal.timeout(25000)])});
