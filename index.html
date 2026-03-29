@@ -51,7 +51,18 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
   .header-row2{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .city-selector{display:flex;align-items:center;gap:5px;flex-shrink:0}
+  .city-selector{display:flex;align-items:center;gap:5px;flex-shrink:0;position:relative}
+  .city-search-wrap{position:relative;display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:0 10px;gap:5px;min-width:140px;transition:border-color 0.2s}
+  .city-search-wrap:focus-within{border-color:var(--accent)}
+  .city-search-input{background:none;border:none;outline:none;color:var(--text);font-size:12px;font-family:inherit;padding:6px 0;width:100px}
+  .city-search-input::placeholder{color:var(--text3)}
+  .city-search-results{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:200px;overflow-y:auto;z-index:2000;display:none;box-shadow:var(--shadow)}
+  .city-search-results.open{display:block}
+  .city-result{padding:8px 12px;cursor:pointer;font-size:12px;color:var(--text2);transition:background 0.15s;border-bottom:1px solid var(--border)}
+  .city-result:last-child{border-bottom:none}
+  .city-result:hover,.city-result.focused{background:var(--surface2);color:var(--text)}
+  .city-result-name{font-weight:500;color:var(--text)}
+  .city-result-detail{font-size:11px;color:var(--text3);margin-top:2px}
   .city-btn{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.2s;font-family:inherit;white-space:nowrap;-webkit-appearance:none}
   .city-btn:hover{border-color:var(--text3);color:var(--text)}
   .city-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent2)}
@@ -222,12 +233,16 @@
 
 <div class="header-row2">
   <div class="city-selector">
-    <button class="city-btn active" onclick="switchCity('nyc')">New York</button>
-    <button class="city-btn" onclick="switchCity('phoenix')">Phoenix</button>
-    <button class="city-btn" onclick="switchCity('galveston')">Galveston</button>
+    <div class="city-search-wrap">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--text3)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="citySearchInput" class="city-search-input" placeholder="Search any city..." onkeydown="if(event.key==='Enter')searchCity()" autocomplete="off">
+      <div id="citySearchResults" class="city-search-results"></div>
+    </div>
+    <button class="city-btn" onclick="switchCity('nyc')">NYC</button>
+    <button class="city-btn" onclick="switchCity('phoenix')">PHX</button>
+    <button class="city-btn" onclick="switchCity('galveston')">GAL</button>
     <button class="city-btn" onclick="switchCity('current')">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-      My Location
     </button>
   </div>
   <div class="stats-row">
@@ -351,12 +366,25 @@ let currentScanController = null;
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   renderFlavorFilters();
-  // Always show Find Near Me button if geolocation is available
   if (navigator.geolocation) {
     document.getElementById('findNearMeBtn').style.display = 'flex';
   }
-  // Auto-detect location on load — fall back to NYC if denied
-  if (navigator.geolocation) {
+
+  // Check URL hash first — allows sharing links
+  const hashParams = parseHash();
+  if (hashParams.lat && hashParams.lng) {
+    userLat = hashParams.lat;
+    userLng = hashParams.lng;
+    radiusMiles = hashParams.r || 3;
+    currentCity = 'custom';
+    document.getElementById('radiusSlider').value = radiusMiles;
+    document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
+    map.setView([userLat, userLng], 14);
+    placeUserMarker();
+    document.getElementById('locationText').textContent = hashParams.name || 'Shared Location';
+    document.getElementById('findNearMeBtn').style.display = 'none';
+    scanArea();
+  } else if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       hasUsedLocation = true;
       currentCity = 'current';
@@ -369,26 +397,111 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
       map.setView([userLat, userLng], 14);
       placeUserMarker();
-      updateCityButtons(3);
       document.getElementById('findNearMeBtn').style.display = 'none';
-      fetch('https://nominatim.openstreetmap.org/reverse?lat='+userLat+'&lon='+userLng+'&format=json&zoom=12')
-        .then(r=>r.json())
-        .then(d=>{
-          const city = d.address?.city || d.address?.town || d.address?.village || 'Your Area';
-          const state = d.address?.state_code || d.address?.state || '';
-          document.getElementById('locationText').textContent = city + (state ? ', '+state : '');
-        }).catch(()=>{
-          document.getElementById('locationText').textContent = 'Your Location';
-        });
+      reverseGeocode(userLat, userLng);
       scanArea();
     }, () => {
-      // Location denied — fall back to NYC
       switchCity('nyc');
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   } else {
     switchCity('nyc');
   }
 });
+
+// =========== URL HASH ROUTING ===========
+function parseHash() {
+  const h = window.location.hash.slice(1);
+  const p = {};
+  h.split('&').forEach(pair => {
+    const [k,v] = pair.split('=');
+    if (k && v) p[k] = decodeURIComponent(v);
+  });
+  if (p.lat) p.lat = parseFloat(p.lat);
+  if (p.lng) p.lng = parseFloat(p.lng);
+  if (p.r) p.r = parseFloat(p.r);
+  return p;
+}
+
+function updateHash() {
+  if (!userLat || !userLng) return;
+  const locName = document.getElementById('locationText').textContent;
+  window.location.hash = 'lat='+userLat.toFixed(4)+'&lng='+userLng.toFixed(4)+'&r='+radiusMiles+(locName ? '&name='+encodeURIComponent(locName) : '');
+}
+
+function reverseGeocode(lat, lng) {
+  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&zoom=12')
+    .then(r=>r.json())
+    .then(d=>{
+      const city = d.address?.city || d.address?.town || d.address?.village || 'Your Area';
+      const state = d.address?.state_code || d.address?.state || '';
+      document.getElementById('locationText').textContent = city + (state ? ', '+state : '');
+    }).catch(()=>{
+      document.getElementById('locationText').textContent = 'Your Location';
+    });
+}
+
+// =========== CITY SEARCH ===========
+let searchDebounce = null;
+function searchCity() {
+  const q = document.getElementById('citySearchInput').value.trim();
+  if (q.length < 2) return;
+  const results = document.getElementById('citySearchResults');
+  results.innerHTML = '<div class="city-result" style="color:var(--text3)">Searching...</div>';
+  results.classList.add('open');
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(async () => {
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=5&addressdetails=1');
+      const data = await r.json();
+      if (data.length === 0) {
+        results.innerHTML = '<div class="city-result" style="color:var(--text3)">No results found</div>';
+        return;
+      }
+      results.innerHTML = data.map((d,i) =>
+        '<div class="city-result" onclick="selectSearchResult('+d.lat+','+d.lon+',\''+escHtml(d.display_name.split(',').slice(0,2).join(','))+'\')">' +
+        '<div class="city-result-name">'+escHtml(d.display_name.split(',').slice(0,2).join(', '))+'</div>' +
+        '<div class="city-result-detail">'+escHtml(d.display_name.split(',').slice(2,4).join(', '))+'</div></div>'
+      ).join('');
+    } catch(e) {
+      results.innerHTML = '<div class="city-result" style="color:var(--text3)">Search failed — try again</div>';
+    }
+  }, 300);
+}
+
+// Live search as user types
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('citySearchInput');
+  if (input) {
+    input.addEventListener('input', () => {
+      if (input.value.trim().length >= 2) searchCity();
+      else document.getElementById('citySearchResults').classList.remove('open');
+    });
+  }
+  // Close dropdown on click outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.city-search-wrap')) {
+      document.getElementById('citySearchResults').classList.remove('open');
+    }
+  });
+});
+
+function selectSearchResult(lat, lng, name) {
+  document.getElementById('citySearchResults').classList.remove('open');
+  document.getElementById('citySearchInput').value = '';
+  currentCity = 'custom';
+  userLat = lat;
+  userLng = lng;
+  radiusMiles = 3;
+  document.getElementById('radiusSlider').value = radiusMiles;
+  document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
+  map.setView([lat, lng], 14);
+  placeUserMarker();
+  document.getElementById('locationText').textContent = name;
+  document.getElementById('findNearMeBtn').style.display = 'none';
+  closeDetail();
+  updateHash();
+  scanArea();
+}
 
 function initMap() {
   map = L.map('map', { zoomControl: true, attributionControl: false }).setView([40.7128, -74.0060], 13);
@@ -524,7 +637,9 @@ function placeUserMarker() {
   userMarker = L.marker([userLat, userLng], {icon, zIndexOffset:1000}).addTo(map);
 }
 
-function updateCityButtons(idx) {
+function updateCityButtons(activeKey) {
+  const keyMap = {nyc:0, phoenix:1, galveston:2, current:3};
+  const idx = typeof activeKey === 'number' ? activeKey : (keyMap[activeKey] ?? -1);
   document.querySelectorAll('.city-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
 }
 
@@ -595,6 +710,7 @@ async function scanArea() {
     document.getElementById('refreshBtn').style.display = 'flex';
     document.getElementById('resultsCount').textContent = shops.length+' coffee shops found';
     updateStats();
+    updateHash();
   } catch(err) {
     if (err.name === 'AbortError') {
       // Scan was cancelled by a new scan — don't show error
