@@ -164,6 +164,7 @@
   .refresh-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s;-webkit-appearance:none}
   .refresh-btn:active{border-color:var(--accent);color:var(--accent)}
   .status-bar{padding:6px 12px;padding-bottom:calc(6px + var(--safe-bottom));background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;justify-content:space-between;align-items:center}
+  .data-source-badge{display:none;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
   /* Using CartoDB dark tiles instead of CSS filter inversion */
   .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
   .leaflet-control-attribution{font-size:9px!important;background:rgba(15,15,15,0.7)!important;color:var(--text3)!important}
@@ -275,6 +276,7 @@
     </div>
     <div class="results-info">
       <span id="resultsCount">Scanning for shops...</span>
+      <span class="data-source-badge" id="dataSourceBadge"></span>
       <button class="refresh-btn" onclick="scanArea()" id="refreshBtn" style="display:none;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
         Rescan
@@ -361,11 +363,74 @@ let activeFlavorFilters = new Set();
 let markers = {}, selectedShopId = null, radiusMiles = 2, currentCity = 'nyc';
 let hasUsedLocation = false;
 let currentScanController = null;
+let cachedCities = null; // Loaded from /api/cities on init
+let dataSource = 'overpass'; // 'cached' or 'overpass' — tracks current data source
+
+// =========== CACHE API ===========
+async function loadCachedCities() {
+  try {
+    const r = await fetch('/api/cities');
+    const data = await r.json();
+    if (data.available && data.cities?.length) {
+      cachedCities = {};
+      data.cities.forEach(c => { cachedCities[c.slug] = c; });
+      console.log(`[Cache] ${data.cities.length} cities available (${data.totalShops} shops)`);
+    }
+  } catch (e) {
+    console.warn('[Cache] Cities index unavailable:', e.message);
+  }
+}
+
+async function loadFromCache(citySlug) {
+  try {
+    const r = await fetch('/api/city/' + encodeURIComponent(citySlug));
+    const data = await r.json();
+    if (data.available && data.shops?.length) {
+      return data;
+    }
+  } catch (e) {
+    console.warn('[Cache] Failed to load city:', e.message);
+  }
+  return null;
+}
+
+function findNearestCachedCity(lat, lng, maxDistMi) {
+  if (!cachedCities) return null;
+  let best = null, bestDist = maxDistMi || 30;
+  for (const city of Object.values(cachedCities)) {
+    const d = getDistance(lat, lng, city.lat, city.lng);
+    if (d < bestDist) { bestDist = d; best = city; }
+  }
+  return best;
+}
+
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function updateDataSourceBadge(source, updatedAt) {
+  dataSource = source;
+  const el = document.getElementById('dataSourceBadge');
+  if (!el) return;
+  if (source === 'cached') {
+    const date = updatedAt ? new Date(updatedAt).toLocaleDateString() : '';
+    el.innerHTML = '⚡ Cached' + (date ? ' · ' + date : '');
+    el.style.display = 'inline-flex';
+    el.style.background = 'rgba(93,186,125,0.15)';
+    el.style.color = '#5dba7d';
+  } else {
+    el.innerHTML = '🔄 Live API';
+    el.style.display = 'inline-flex';
+    el.style.background = 'rgba(232,180,93,0.15)';
+    el.style.color = '#e8b45d';
+  }
+}
 
 // =========== INIT ===========
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   renderFlavorFilters();
+  loadCachedCities(); // Fire and forget — results used when available
   if (navigator.geolocation) {
     document.getElementById('findNearMeBtn').style.display = 'flex';
   }
@@ -485,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function selectSearchResult(lat, lng, name) {
+async function selectSearchResult(lat, lng, name) {
   document.getElementById('citySearchResults').classList.remove('open');
   document.getElementById('citySearchInput').value = '';
   currentCity = 'custom';
@@ -643,7 +708,7 @@ function updateCityButtons(activeKey) {
   document.querySelectorAll('.city-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
 }
 
-// =========== SCAN (Adaptive) ===========
+// =========== SCAN (Cache-first with Overpass fallback) ===========
 async function scanArea() {
   if (!userLat || !userLng) {
     console.warn('scanArea called without coordinates');
@@ -657,10 +722,36 @@ async function scanArea() {
   scanBtn.disabled = true;
   lastScanRadius = radiusMiles;
   document.getElementById('loadingOverlay').classList.remove('hidden');
-  updateLoading('Scanning for coffee shops...', 'Searching OpenStreetMap database');
+
   try {
+    // === TRY CACHE FIRST ===
+    const nearestCity = findNearestCachedCity(userLat, userLng, 30);
+    if (nearestCity) {
+      updateLoading('Loading coffee shops...', 'Using cached data for ' + nearestCity.name);
+      const cached = await loadFromCache(nearestCity.slug);
+      if (cached?.shops?.length) {
+        const shops = cached.shops.map(s => ({
+          ...s,
+          distance: getDistance(userLat, userLng, s.lat, s.lng),
+          reviews: generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
+        })).sort((a, b) => a.distance - b.distance);
+
+        allShops = shops; filteredShops = [...shops];
+        renderShopList(); renderMapMarkers();
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        document.getElementById('refreshBtn').style.display = 'flex';
+        document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
+        updateDataSourceBadge('cached', cached.updatedAt);
+        updateStats();
+        updateHash();
+        scanBtn.disabled = false;
+        return;
+      }
+    }
+
+    // === FALLBACK: LIVE OVERPASS ===
+    updateLoading('Scanning for coffee shops...', 'Searching OpenStreetMap database');
     const rm = radiusMiles * 1609.34;
-    // Phase 1: Standard cafe/coffee query
     const q1 = '[out:json][timeout:25];(node["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');way["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');node["cuisine"~"coffee"](around:'+rm+','+userLat+','+userLng+');node["shop"="coffee"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
     let d1;
     const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.openstreetmap.ru/api/interpreter'];
@@ -709,11 +800,11 @@ async function scanArea() {
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('refreshBtn').style.display = 'flex';
     document.getElementById('resultsCount').textContent = shops.length+' coffee shops found';
+    updateDataSourceBadge('overpass');
     updateStats();
     updateHash();
   } catch(err) {
     if (err.name === 'AbortError') {
-      // Scan was cancelled by a new scan — don't show error
       document.getElementById('loadingOverlay').classList.add('hidden');
       scanBtn.disabled = false;
       return;

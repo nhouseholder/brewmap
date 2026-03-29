@@ -1,0 +1,7 @@
+name = "brewmap-app"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "22929c29cd1e40cc8399c91e0e6843e2"
