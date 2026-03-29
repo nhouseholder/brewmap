@@ -340,11 +340,40 @@ let hasUsedLocation = false;
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   renderFlavorFilters();
-  // Try to detect if on mobile and auto-prompt location
-  if (window.innerWidth <= 768 && navigator.geolocation) {
-    // On mobile, show Find Near Me prominently — don't auto-scan a city
+  // Always show Find Near Me button if geolocation is available
+  if (navigator.geolocation) {
     document.getElementById('findNearMeBtn').style.display = 'flex';
-    switchCity('nyc'); // Still load NYC as default
+  }
+  // Auto-detect location on load — fall back to NYC if denied
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      hasUsedLocation = true;
+      currentCity = 'current';
+      CITIES.current.lat = pos.coords.latitude;
+      CITIES.current.lng = pos.coords.longitude;
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      radiusMiles = 3;
+      document.getElementById('radiusSlider').value = radiusMiles;
+      document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
+      map.setView([userLat, userLng], 14);
+      placeUserMarker();
+      updateCityButtons(3);
+      document.getElementById('findNearMeBtn').style.display = 'none';
+      fetch('https://nominatim.openstreetmap.org/reverse?lat='+userLat+'&lon='+userLng+'&format=json&zoom=12')
+        .then(r=>r.json())
+        .then(d=>{
+          const city = d.address?.city || d.address?.town || d.address?.village || 'Your Area';
+          const state = d.address?.state_code || d.address?.state || '';
+          document.getElementById('locationText').textContent = city + (state ? ', '+state : '');
+        }).catch(()=>{
+          document.getElementById('locationText').textContent = 'Your Location';
+        });
+      scanArea();
+    }, () => {
+      // Location denied — fall back to NYC
+      switchCity('nyc');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   } else {
     switchCity('nyc');
   }
@@ -412,8 +441,9 @@ function findNearMe() {
         document.getElementById('locationText').textContent = 'Your Location';
       });
 
-    // Hide the big button after first use, show locate button instead
+    // Hide the big button after first use
     btn.style.display = 'none';
+    document.getElementById('mapLocateBtn').style.display = 'flex';
     scanArea();
   }, err => {
     btn.classList.remove('scanning');
@@ -488,14 +518,24 @@ function updateCityButtons(idx) {
 async function scanArea() {
   const scanBtn = document.getElementById('scanBtn');
   scanBtn.disabled = true;
+  lastScanRadius = radiusMiles;
   document.getElementById('loadingOverlay').classList.remove('hidden');
   updateLoading('Scanning for coffee shops...', 'Searching OpenStreetMap database');
   try {
     const rm = radiusMiles * 1609.34;
     // Phase 1: Standard cafe/coffee query
     const q1 = '[out:json][timeout:25];(node["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');way["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');node["cuisine"~"coffee"](around:'+rm+','+userLat+','+userLng+');node["shop"="coffee"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
-    const r1 = await fetch('https://overpass-api.de/api/interpreter', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1)});
-    const d1 = await r1.json();
+    let d1;
+    const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+    for (const apiUrl of overpassUrls) {
+      try {
+        const r1 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1),signal:AbortSignal.timeout(30000)});
+        if (!r1.ok) { console.warn('Overpass returned ' + r1.status + ' from ' + apiUrl); continue; }
+        d1 = await r1.json();
+        if (d1.elements) break;
+      } catch(e) { console.warn('Overpass fetch failed from ' + apiUrl + ':', e); }
+    }
+    if (!d1 || !d1.elements) { throw new Error('All Overpass API endpoints failed. Please try again in a moment.'); }
     let allElements = [...d1.elements];
 
     // Phase 2: Expand if few results
@@ -503,9 +543,14 @@ async function scanArea() {
       updateLoading('Expanding search...', 'Looking for more coffee spots by name');
       try {
         const q2 = '[out:json][timeout:25];(node["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast|Bean|bean|Brew|brew|Latte|latte"](around:'+rm+','+userLat+','+userLng+');way["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
-        const r2 = await fetch('https://overpass-api.de/api/interpreter', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2)});
-        const d2 = await r2.json();
-        allElements = allElements.concat(d2.elements);
+        for (const apiUrl of overpassUrls) {
+          try {
+            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.timeout(30000)});
+            if (!r2.ok) continue;
+            const d2 = await r2.json();
+            if (d2.elements) { allElements = allElements.concat(d2.elements); break; }
+          } catch(e) { console.warn('Expanded search failed from ' + apiUrl + ':', e); }
+        }
       } catch(e) { console.warn('Expanded search failed:', e); }
     }
 
@@ -665,7 +710,19 @@ function filterShops() {
   renderShopList(); renderMapMarkers();
 }
 
-function updateRadius(){radiusMiles=parseFloat(document.getElementById('radiusSlider').value);document.getElementById('radiusLabel').textContent=radiusMiles+' mi';filterShops();}
+let lastScanRadius = 0;
+function updateRadius(){
+  const newRadius = parseFloat(document.getElementById('radiusSlider').value);
+  radiusMiles = newRadius;
+  document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
+  // If radius expanded beyond what we last scanned, rescan the area
+  if (newRadius > lastScanRadius && userLat && userLng) {
+    clearTimeout(window._radiusRescanTimer);
+    window._radiusRescanTimer = setTimeout(() => scanArea(), 500);
+  } else {
+    filterShops();
+  }
+}
 
 // =========== UTILITIES ===========
 function getDistance(lat1,lon1,lat2,lon2){const R=3959;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
