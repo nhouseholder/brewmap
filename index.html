@@ -10,16 +10,22 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
 <title>BrewMap — Discover Local Coffee Flavor</title>
+<meta name="description" content="Find local coffee shops near you and discover their flavor profiles. Filter by taste — dark, fruity, bold, smooth, and more. Interactive map powered by OpenStreetMap.">
+<meta property="og:title" content="BrewMap — Discover Local Coffee Flavor">
+<meta property="og:description" content="Find local coffee shops and filter by flavor profile. Dark, fruity, bold, smooth — discover your perfect brew.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://brewmap-app.pages.dev">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 
   :root {
     --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--surface3:#2e2e2e;--border:#333;
-    --text:#f0f0f0;--text2:#a0a0a0;--text3:#666;--accent:#d4a053;--accent2:#e8c07a;
+    --text:#f0f0f0;--text2:#a0a0a0;--text3:#888;--accent:#d4a053;--accent2:#e8c07a;
     --accent-dim:rgba(212,160,83,0.15);--red:#e85d5d;--green:#5dba7d;--blue:#5d9de8;
     --purple:#a87de8;--orange:#e8935d;--pink:#e85da8;--radius:12px;--radius-sm:8px;
     --shadow:0 4px 24px rgba(0,0,0,0.4);
@@ -265,8 +271,8 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v2.0 — AI-Powered Coffee Discovery</span>
-      <span>Data: OpenStreetMap + AI</span>
+      <span>BrewMap v2.1 — Local Coffee Discovery</span>
+      <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
   <div class="map-container">
@@ -297,9 +303,10 @@
           </div>
         </div>
         <div class="shop-flavors" id="detailFlavors"></div>
+        <div id="detailExtras" style="margin-top:8px;display:none;"></div>
       </div>
       <div class="detail-section">
-        <div class="detail-section-title">Flavor Profile (AI Analysis)</div>
+        <div class="detail-section-title">Estimated Flavor Profile</div>
         <div class="flavor-profile-chart" id="flavorChart"></div>
       </div>
       <div class="detail-section">
@@ -307,7 +314,7 @@
         <div class="review-quotes" id="reviewQuotes"></div>
         <div class="ai-badge" style="margin-top:8px;">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>
-          Flavor notes extracted by AI from user reviews
+          Flavor estimates generated from shop name and category — not from real reviews
         </div>
       </div>
     </div>
@@ -530,8 +537,7 @@ async function scanArea() {
   // Abort any in-flight scan
   if (currentScanController) { currentScanController.abort(); }
   currentScanController = new AbortController();
-  const scanSignal = currentScanController.signal;
-
+  const scanAbort = currentScanController.signal;
   const scanBtn = document.getElementById('scanBtn');
   scanBtn.disabled = true;
   lastScanRadius = radiusMiles;
@@ -545,7 +551,7 @@ async function scanArea() {
     const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
     for (const apiUrl of overpassUrls) {
       try {
-        const r1 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1),signal:AbortSignal.timeout(30000)});
+        const r1 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1),signal:AbortSignal.any([scanAbort, AbortSignal.timeout(25000)])});
         if (!r1.ok) { console.warn('Overpass returned ' + r1.status + ' from ' + apiUrl); continue; }
         d1 = await r1.json();
         if (d1.elements) break;
@@ -561,7 +567,7 @@ async function scanArea() {
         const q2 = '[out:json][timeout:25];(node["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast|Bean|bean|Brew|brew|Latte|latte"](around:'+rm+','+userLat+','+userLng+');way["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
         for (const apiUrl of overpassUrls) {
           try {
-            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.timeout(10000)});
+            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.any([scanAbort, AbortSignal.timeout(10000)])});
             if (!r2.ok) continue;
             const d2 = await r2.json();
             if (d2.elements) { allElements = allElements.concat(d2.elements); break; }
@@ -570,8 +576,7 @@ async function scanArea() {
       } catch(e) { console.warn('Expanded search failed:', e); }
     }
 
-    updateLoading('Found '+allElements.length+' places...', 'Filtering and analyzing flavor profiles');
-    await sleep(300);
+    updateLoading('Processing '+allElements.length+' places...', 'Filtering chains and generating flavor estimates');
 
     const chains = ['starbucks','dunkin','peet','mcdonald','tim horton','panera','caribou','subway','burger','wendy','taco','pizza','popeye','chick-fil','jack in','sonic','whataburger','ihop','denny','krispy','dairy queen'];
     const seen = new Set();
@@ -581,11 +586,8 @@ async function scanArea() {
       .map((el,i) => {
         const lat=el.lat||el.center?.lat, lng=el.lon||el.center?.lon;
         if(!lat||!lng) return null;
-        return {id:el.id,name:el.tags.name,lat,lng,distance:getDistance(userLat,userLng,lat,lng),address:buildAddress(el.tags),...generateReviewData(el.tags.name,el.tags,i)};
+        return {id:el.id,name:el.tags.name,lat,lng,distance:getDistance(userLat,userLng,lat,lng),address:buildAddress(el.tags),hours:el.tags.opening_hours||null,website:el.tags.website||el.tags['contact:website']||null,phone:el.tags.phone||el.tags['contact:phone']||null,...generateReviewData(el.tags.name,el.tags,i)};
       }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
-
-    updateLoading('Running AI flavor analysis on '+shops.length+' shops...', 'Extracting tasting notes');
-    await sleep(400);
 
     allShops = shops; filteredShops = [...shops];
     renderShopList(); renderMapMarkers();
@@ -594,9 +596,15 @@ async function scanArea() {
     document.getElementById('resultsCount').textContent = shops.length+' coffee shops found';
     updateStats();
   } catch(err) {
+    if (err.name === 'AbortError') {
+      // Scan was cancelled by a new scan — don't show error
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      scanBtn.disabled = false;
+      return;
+    }
     console.error('Scan error:', err);
-    updateLoading('Error: '+err.message, 'Click Scan Area to retry');
-    setTimeout(()=>document.getElementById('loadingOverlay').classList.add('hidden'),3000);
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.innerHTML = '<div style="text-align:center;padding:24px;"><div style="font-size:40px;margin-bottom:12px;">&#9888;</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">Could not load coffee shops</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px;">The map database may be temporarily unavailable.</div><button onclick="document.getElementById(\'loadingOverlay\').innerHTML=\'<div class=spinner></div><div class=loading-text id=loadingText>Retrying...</div><div class=loading-step id=loadingStep></div>\';scanArea()" style="background:linear-gradient(135deg,var(--accent),#b8863a);color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Retry</button><button onclick="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\')" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;margin-left:8px;">Dismiss</button></div>';
   }
   scanBtn.disabled = false;
 }
@@ -700,9 +708,16 @@ function selectShop(id) {
   if(markers[id])markers[id].openPopup();
   document.getElementById('detailName').textContent=shop.name;
   document.getElementById('detailAddress').textContent=shop.address||'Address not available';
+  // Show real OSM data if available
+  let detailExtras = '';
+  if (shop.hours) detailExtras += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">&#128336; '+escHtml(shop.hours)+'</div>';
+  if (shop.website) detailExtras += '<div style="font-size:12px;margin-bottom:4px;"><a href="'+escHtml(shop.website)+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">&#127760; Website</a></div>';
+  if (shop.phone) detailExtras += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">&#128222; '+escHtml(shop.phone)+'</div>';
+  const extrasEl = document.getElementById('detailExtras');
+  if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
-  document.getElementById('detailReviewCount').textContent='Based on '+shop.reviewCount+' reviews';
+  document.getElementById('detailReviewCount').textContent='Estimated profile (not from real reviews)';
   document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');
@@ -757,12 +772,6 @@ document.body.addEventListener('touchmove', function(e) {
   e.preventDefault();
 }, { passive: false });
 
-// Fix 100vh on iOS
-function setVH() {
-  document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
-}
-setVH();
-window.addEventListener('resize', setVH);
 </script>
 </body>
 </html>
