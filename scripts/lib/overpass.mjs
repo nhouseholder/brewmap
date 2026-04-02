@@ -13,6 +13,60 @@ const CHAINS = [
   'sonic','whataburger','ihop','denny','krispy','dairy queen'
 ];
 
+// Coffee-forward keywords (in name) — indicates primary coffee identity
+const COFFEE_KEYWORDS = [
+  'coffee','espresso','roast','brew','bean','latte','cappuccino','mocha',
+  'drip','pourover','pour over','cold brew','coffeehouse','coffee house',
+  'café','roaster','roastery','caffeinated'
+];
+
+// Non-coffee-primary indicators (in name) — reject unless also has coffee keyword
+const NOT_COFFEE_PRIMARY = [
+  'tea house','tea room','boba','bubble tea','bakery','baking','bagel',
+  'donut','doughnut','pizza','burger','taco','burrito','sushi','ramen',
+  'noodle','pho','thai','chinese','indian','mexican','italian','greek',
+  'bbq','barbecue','bar & grill','bar and grill','pub','tavern','brewery',
+  'winery','smoothie','juice bar','ice cream','gelato','frozen yogurt',
+  'catering','deli','sandwich','sub shop','wings'
+];
+
+/**
+ * Determine if an OSM element represents a coffee-forward shop.
+ * Returns true if the place is primarily about coffee.
+ */
+function isCoffeeForward(el) {
+  const tags = el.tags || {};
+  const name = (tags.name || '').toLowerCase();
+  const cuisine = (tags.cuisine || '').toLowerCase();
+
+  // Definite yes: tagged as coffee shop or coffee cuisine
+  if (tags.shop === 'coffee') return true;
+  if (cuisine.includes('coffee')) return true;
+
+  // Check name for coffee keywords
+  const hasCoffeeKeyword = COFFEE_KEYWORDS.some(k => name.includes(k));
+
+  // Check name for non-coffee-primary indicators
+  const hasNonCoffee = NOT_COFFEE_PRIMARY.some(k => name.includes(k));
+
+  // If name has a coffee keyword and no disqualifier, it's coffee-forward
+  if (hasCoffeeKeyword && !hasNonCoffee) return true;
+
+  // If name has both, coffee keyword wins (e.g. "Coffee & Bagel Co" is coffee-forward)
+  if (hasCoffeeKeyword && hasNonCoffee) return true;
+
+  // amenity=cafe with no other signals — check cuisine for non-coffee
+  if (tags.amenity === 'cafe') {
+    // Reject if cuisine is clearly non-coffee
+    const nonCoffeeCuisine = ['tea','bubble_tea','bakery','sandwich','pizza','ice_cream','juice'];
+    if (nonCoffeeCuisine.some(c => cuisine.includes(c)) && !cuisine.includes('coffee')) return false;
+    // Generic cafe with no disqualifying name — include (benefit of the doubt)
+    if (!hasNonCoffee) return true;
+  }
+
+  return false;
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /**
@@ -57,7 +111,7 @@ export async function queryOverpass(lat, lng, radiusMeters, opts = {}) {
     }
   }
 
-  // Deduplicate + filter chains + extract shop data
+  // Deduplicate + filter chains + coffee-forward check + extract
   const seen = new Set();
   return allElements
     .filter(el => {
@@ -69,6 +123,7 @@ export async function queryOverpass(lat, lng, radiusMeters, opts = {}) {
       const n = el.tags.name.toLowerCase();
       return !CHAINS.some(c => n.includes(c));
     })
+    .filter(el => isCoffeeForward(el))
     .map(el => parseShopFromElement(el))
     .filter(Boolean);
 }

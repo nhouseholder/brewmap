@@ -768,18 +768,23 @@ async function scanArea() {
           ...s,
           distance: getDistance(userLat, userLng, s.lat, s.lng),
           reviews: generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
-        })).sort((a, b) => a.distance - b.distance);
+        })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
-        allShops = shops; filteredShops = [...shops];
-        renderShopList(); renderMapMarkers();
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        document.getElementById('refreshBtn').style.display = 'flex';
-        document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
-        updateDataSourceBadge('cached', cached.updatedAt);
-        updateStats();
-        updateHash();
-        scanBtn.disabled = false;
-        return;
+        if (shops.length === 0) {
+          // No cached shops within radius — fall through to Overpass
+          console.log('[Cache] No shops within ' + radiusMiles + 'mi — falling back to Overpass');
+        } else {
+          allShops = shops; filteredShops = [...shops];
+          renderShopList(); renderMapMarkers();
+          document.getElementById('loadingOverlay').classList.add('hidden');
+          document.getElementById('refreshBtn').style.display = 'flex';
+          document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
+          updateDataSourceBadge('cached', cached.updatedAt);
+          updateStats();
+          updateHash();
+          scanBtn.disabled = false;
+          return;
+        }
       }
     }
 
@@ -819,10 +824,29 @@ async function scanArea() {
     updateLoading('Processing '+allElements.length+' places...', 'Filtering chains and generating flavor estimates');
 
     const chains = ['starbucks','dunkin','peet','mcdonald','tim horton','panera','caribou','subway','burger','wendy','taco','pizza','popeye','chick-fil','jack in','sonic','whataburger','ihop','denny','krispy','dairy queen'];
+    const coffeeKeywords = ['coffee','espresso','roast','brew','bean','latte','cappuccino','mocha','drip','pourover','pour over','cold brew','coffeehouse','coffee house','café','roaster','roastery','caffeinated'];
+    const notCoffeePrimary = ['tea house','tea room','boba','bubble tea','bakery','baking','bagel','donut','doughnut','pizza','burger','taco','burrito','sushi','ramen','noodle','pho','thai','chinese','indian','mexican','italian','greek','bbq','barbecue','bar & grill','bar and grill','pub','tavern','brewery','winery','smoothie','juice bar','ice cream','gelato','frozen yogurt','catering','deli','sandwich','sub shop','wings'];
+    function isCoffeeForward(el) {
+      const tags = el.tags || {};
+      const name = (tags.name || '').toLowerCase();
+      const cuisine = (tags.cuisine || '').toLowerCase();
+      if (tags.shop === 'coffee') return true;
+      if (cuisine.includes('coffee')) return true;
+      const hasCK = coffeeKeywords.some(k => name.includes(k));
+      const hasNC = notCoffeePrimary.some(k => name.includes(k));
+      if (hasCK) return true;
+      if (tags.amenity === 'cafe') {
+        const ncCuisine = ['tea','bubble_tea','bakery','sandwich','pizza','ice_cream','juice'];
+        if (ncCuisine.some(c => cuisine.includes(c)) && !cuisine.includes('coffee')) return false;
+        if (!hasNC) return true;
+      }
+      return false;
+    }
     const seen = new Set();
     let shops = allElements
       .filter(el => { if(!el.tags||!el.tags.name||seen.has(el.id)) return false; seen.add(el.id); return true; })
       .filter(el => { const n=el.tags.name.toLowerCase(); return !chains.some(c=>n.includes(c)); })
+      .filter(el => isCoffeeForward(el))
       .map((el,i) => {
         const lat=el.lat||el.center?.lat, lng=el.lon||el.center?.lon;
         if(!lat||!lng) return null;
