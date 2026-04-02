@@ -1,6 +1,6 @@
 {
   "name": "brewmap",
-  "version": "4.3.0",
+  "version": "4.3.1",
   "description": "Coffee shop discovery app with flavor profiles — powered by OpenStreetMap + Cloudflare KV",
   "type": "module",
   "scripts": {

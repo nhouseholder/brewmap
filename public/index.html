@@ -275,8 +275,8 @@
           <option value="name">Sort by Name</option>
         </select>
         <div class="radius-control">
-          <span id="radiusLabel">2 mi</span>
-          <input type="range" id="radiusSlider" min="1" max="10" value="2" step="0.5" oninput="updateRadius()">
+          <span id="radiusLabel">5 mi</span>
+          <input type="range" id="radiusSlider" min="1" max="10" value="5" step="0.5" oninput="updateRadius()">
         </div>
       </div>
       <div class="flavor-filters" id="flavorFilters" role="group" aria-label="Flavor filters"></div>
@@ -367,7 +367,7 @@ const CITIES = {
 let map, userLat, userLng, userMarker;
 let allShops = [], filteredShops = [];
 let activeFlavorFilters = new Set();
-let markers = {}, selectedShopId = null, radiusMiles = 2, currentCity = 'nyc';
+let markers = {}, selectedShopId = null, radiusMiles = 5, currentCity = 'nyc';
 let hasUsedLocation = false;
 let currentScanController = null;
 let cachedCities = null; // Loaded from /api/cities on init
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (hashParams.lat && hashParams.lng) {
     userLat = hashParams.lat;
     userLng = hashParams.lng;
-    radiusMiles = hashParams.r || 3;
+    radiusMiles = hashParams.r || 5;
     currentCity = 'custom';
     document.getElementById('radiusSlider').value = radiusMiles;
     document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
@@ -464,10 +464,10 @@ document.addEventListener('DOMContentLoaded', () => {
       CITIES.current.lng = pos.coords.longitude;
       userLat = pos.coords.latitude;
       userLng = pos.coords.longitude;
-      radiusMiles = 3;
+      radiusMiles = 5;
       document.getElementById('radiusSlider').value = radiusMiles;
       document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
-      map.setView([userLat, userLng], 14);
+      map.setView([userLat, userLng], 12);
       placeUserMarker();
       document.getElementById('findNearMeBtn').style.display = 'none';
       reverseGeocode(userLat, userLng);
@@ -586,7 +586,7 @@ async function selectSearchResult(lat, lng, name) {
   currentCity = 'custom';
   userLat = lat;
   userLng = lng;
-  radiusMiles = 3;
+  radiusMiles = 5;
   document.getElementById('radiusSlider').value = radiusMiles;
   document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
   map.setView([lat, lng], 14);
@@ -646,7 +646,7 @@ function findNearMe() {
     CITIES.current.lng = pos.coords.longitude;
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
-    radiusMiles = 2;
+    radiusMiles = 5;
     document.getElementById('radiusSlider').value = radiusMiles;
     document.getElementById('radiusLabel').textContent = radiusMiles + ' mi';
     map.setView([userLat, userLng], 15);
