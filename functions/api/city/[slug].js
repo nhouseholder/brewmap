@@ -4,8 +4,8 @@ export async function onRequest(context) {
   const { env, params } = context;
   const slug = params.slug;
 
-  if (!slug) {
-    return json({ available: false, message: 'Missing city slug' }, 400);
+  if (!slug || !/^[a-z0-9-]+$/.test(slug) || slug.length > 64) {
+    return json({ available: false, message: 'Invalid city slug' }, 400);
   }
 
   try {
@@ -46,7 +46,8 @@ export async function onRequest(context) {
       shops: data.shops || [],
     });
   } catch (err) {
-    return json({ available: false, error: err.message }, 500);
+    console.error('City API error:', err);
+    return json({ available: false, error: 'Internal error' }, 500);
   }
 }
 

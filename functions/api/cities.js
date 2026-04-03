@@ -17,7 +17,8 @@ export async function onRequest(context) {
       cities: data.cities,
     });
   } catch (err) {
-    return json({ available: false, error: err.message }, 500);
+    console.error('Cities API error:', err);
+    return json({ available: false, error: 'Internal error' }, 500);
   }
 }
 

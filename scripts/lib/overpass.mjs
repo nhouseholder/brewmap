@@ -94,7 +94,8 @@ export async function queryOverpass(lat, lng, radiusMeters, opts = {}) {
 
   let allElements = [];
   const d1 = await fetchOverpass(q1, timeout);
-  if (d1?.elements) allElements = [...d1.elements];
+  if (!d1) throw new Error('All Overpass endpoints failed for Phase 1 query');
+  if (d1.elements) allElements = [...d1.elements];
 
   // Phase 2: Expand if few named results
   const namedCount = allElements.filter(e => e.tags?.name).length;

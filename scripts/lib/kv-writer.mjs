@@ -112,6 +112,12 @@ export async function writeCitiesIndex(cities, results) {
     };
   }).filter(c => c.shopCount > 0);
 
+  // Don't overwrite a good index with empty data
+  if (citySummaries.length === 0) {
+    console.warn('⚠️  All cities have 0 shops — skipping index write to preserve existing data');
+    return;
+  }
+
   await kvPut('coffee:cities:index', {
     lastUpdated: now,
     totalShops,

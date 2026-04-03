@@ -104,9 +104,9 @@ async function main() {
     console.log(`   ⚠️ ${failures} cities failed`);
   }
 
-  // Exit with error if >50% failed
-  if (failures > CITIES.length / 2) {
-    console.error('\n❌ More than half the cities failed — check Overpass API status');
+  // Exit with error if >30% failed
+  if (failures > CITIES.length * 0.3) {
+    console.error(`\n❌ ${failures}/${CITIES.length} cities failed (>${Math.round(CITIES.length * 0.3)} threshold) — check Overpass API status`);
     process.exit(1);
   }
 }
