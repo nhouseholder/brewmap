@@ -295,7 +295,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v4.3 — Local Coffee Discovery</span>
+      <span>BrewMap v5.0 — Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
@@ -823,7 +823,9 @@ async function scanArea() {
         const shops = cached.shops.map(s => ({
           ...s,
           distance: getDistance(userLat, userLng, s.lat, s.lng),
-          reviews: generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
+          reviews: s.yelpReviews && s.yelpReviews.length > 0
+            ? s.yelpReviews.map(r => ({ text: r.text, source: 'Yelp', rating: r.rating, user: r.user, flavorsFound: [] }))
+            : generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
         })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
         if (shops.length === 0) {
@@ -1000,7 +1002,7 @@ function renderShopList() {
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
     '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)</div></div>'
+    '<div class="ai-badge">'+(shop.dataSource==='yelp'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Yelp verified ratings &amp; reviews':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)')+'</div></div>'
   ).join('');
 }
 
@@ -1013,7 +1015,7 @@ function renderMapMarkers() {
     const mc = FLAVOR_BAR_COLORS[tf]||'#d4a053';
     const icon = L.divIcon({className:'',html:'<div class="coffee-marker" style="background:'+mc+'"><span class="coffee-marker-inner">&#9749;</span></div>',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
     const marker = L.marker([shop.lat,shop.lng],{icon}).addTo(map)
-      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+shop.flavorTags.slice(0,4).map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
+      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)'+(shop.dataSource==='yelp'?' <span style="font-size:10px;opacity:0.7;">via Yelp</span>':'')+'</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+shop.flavorTags.slice(0,4).map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
     marker.on('click',()=>selectShop(shop.id));
     markers[shop.id] = marker;
   });
@@ -1038,11 +1040,11 @@ function selectShop(id) {
   if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
-  document.getElementById('detailReviewCount').textContent='Estimated profile (not from real reviews)';
+  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>':'Estimated profile (not from real reviews)';
   document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');
-  document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});return '<div class="review-quote">"'+t+'"<div class="review-source">'+r.source+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
+  document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);if(r.flavorsFound)r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});const src=r.source==='Yelp'?(r.user?r.user+' on Yelp':'Yelp'):r.source;return '<div class="review-quote">"'+t+'"<div class="review-source">'+escHtml(src)+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
   const panel = document.getElementById('detailPanel');
   panel.classList.add('open');
   panel.focus();

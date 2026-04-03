@@ -66,21 +66,32 @@ export async function writeCityToKV(city, shops) {
     lastUpdated: now,
   });
 
-  // All shops (compact — no reviews, just flavor data)
-  const compactShops = shops.map(s => ({
-    id: s.id,
-    name: s.name,
-    lat: s.lat,
-    lng: s.lng,
-    address: s.address,
-    hours: s.hours,
-    website: s.website,
-    phone: s.phone,
-    rating: s.rating,
-    reviewCount: s.reviewCount,
-    flavorTags: s.flavorTags,
-    flavorProfile: s.flavorProfile,
-  }));
+  // All shops (compact — flavor data + optional Yelp enrichment)
+  const compactShops = shops.map(s => {
+    const shop = {
+      id: s.id,
+      name: s.name,
+      lat: s.lat,
+      lng: s.lng,
+      address: s.address,
+      hours: s.hours,
+      website: s.website,
+      phone: s.phone,
+      rating: s.rating,
+      reviewCount: s.reviewCount,
+      flavorTags: s.flavorTags,
+      flavorProfile: s.flavorProfile,
+    };
+    // Preserve Yelp enrichment fields if present
+    if (s.dataSource) shop.dataSource = s.dataSource;
+    if (s.yelpId) shop.yelpId = s.yelpId;
+    if (s.yelpUrl) shop.yelpUrl = s.yelpUrl;
+    if (s.yelpRating != null) shop.yelpRating = s.yelpRating;
+    if (s.yelpReviewCount != null) shop.yelpReviewCount = s.yelpReviewCount;
+    if (s.yelpReviews) shop.yelpReviews = s.yelpReviews;
+    if (s.yelpEnrichedAt) shop.yelpEnrichedAt = s.yelpEnrichedAt;
+    return shop;
+  });
 
   await kvPut(`coffee:city:${city.slug}:shops`, {
     city: city.slug,
