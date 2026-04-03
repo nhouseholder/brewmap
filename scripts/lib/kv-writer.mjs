@@ -6,7 +6,7 @@ const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CLOUDFLARE_KV_NAMESPACE_ID = process.env.CLOUDFLARE_KV_NAMESPACE_ID;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}`;
-const KV_TTL_SECONDS = 8 * 24 * 60 * 60; // 8 days (weekly harvest + 1 day buffer)
+const KV_TTL_SECONDS = 14 * 24 * 60 * 60; // 14 days (survives a missed weekly harvest)
 
 const DRY_RUN = !!process.env.DRY_RUN;
 

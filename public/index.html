@@ -80,6 +80,7 @@
   .main{display:flex;height:calc(100% - 85px)}
 
   .sidebar{width:400px;min-width:400px;display:flex;flex-direction:column;background:var(--bg);border-right:1px solid var(--border);z-index:500}
+  .sheet-handle{display:none}
   .controls{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
   .search-bar{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0 12px;transition:border-color 0.2s}
   .search-bar:focus-within{border-color:var(--accent)}
@@ -189,9 +190,12 @@
 
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 768px) {
-    .main{flex-direction:column-reverse;height:calc(100% - 85px)}
-    .sidebar{width:100%;min-width:100%;max-height:50%;border-right:none;border-top:1px solid var(--border)}
-    .map-container{flex:1;min-height:50%}
+    .main{flex-direction:column;height:calc(100% - 85px);position:relative}
+    .map-container{flex:1;width:100%;min-height:0}
+    .sidebar{position:absolute;bottom:0;left:0;right:0;width:100%;min-width:100%;height:50%;max-height:85%;border-right:none;border-top:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;z-index:500;transition:height 0.3s cubic-bezier(0.4,0,0.2,1);will-change:height;touch-action:none}
+    .sidebar.dragging{transition:none}
+    .sidebar .sheet-handle{display:flex;align-items:center;justify-content:center;padding:10px 0 6px;cursor:grab;touch-action:none}
+    .sidebar .sheet-handle-bar{width:36px;height:4px;background:var(--surface3);border-radius:2px}
     .detail-panel{position:fixed;right:0;left:0;bottom:0;top:auto;width:100%;max-height:70vh;border-radius:var(--radius) var(--radius) 0 0;transform:translateY(100%)}
     .detail-panel.open{transform:translateY(0)}
     .header{padding:6px 12px;padding-top:calc(6px + var(--safe-top))}
@@ -205,8 +209,8 @@
     .stat-label{font-size:8px}
     .controls{padding:10px}
     .shop-list{padding:4px}
-    .find-near-me-btn{bottom:calc(50% + 16px);padding:10px 20px;font-size:14px;border-radius:24px}
-    .map-locate-btn{bottom:calc(50% + 16px);right:10px}
+    .find-near-me-btn{bottom:55%;padding:10px 20px;font-size:14px;border-radius:24px}
+    .map-locate-btn{bottom:55%;right:10px}
     .stats-row{display:none}
     .status-bar{display:none}
   }
@@ -216,11 +220,6 @@
     .city-btn{padding:4px 8px;font-size:10px}
     .logo-text{font-size:14px}
     .scan-btn span.scan-label{display:none}
-  }
-
-  /* ===== BOTTOM SHEET HANDLE (mobile) ===== */
-  @media (max-width: 768px) {
-    .sidebar::before{content:'';display:block;width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:8px auto 4px}
   }
 </style>
 </head>
@@ -243,7 +242,7 @@
   <div class="city-selector">
     <div class="city-search-wrap">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--text3)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="citySearchInput" class="city-search-input" placeholder="Search any city..." onkeydown="handleCitySearchKey(event)" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="citySearchResults" aria-autocomplete="list">
+      <input type="text" id="citySearchInput" class="city-search-input" placeholder="Search cities..." onkeydown="handleCitySearchKey(event)" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="citySearchResults" aria-autocomplete="list">
       <div id="citySearchResults" class="city-search-results" role="listbox" aria-label="City search results"></div>
     </div>
     <button class="city-btn" onclick="switchCity('nyc')">NYC</button>
@@ -262,6 +261,7 @@
 
 <div class="main" role="main">
   <div class="sidebar" role="complementary" aria-label="Coffee shop filters and list">
+    <div class="sheet-handle" aria-hidden="true"><div class="sheet-handle-bar"></div></div>
     <div class="controls">
       <div class="search-bar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -573,13 +573,58 @@ function updateCitySearchExpanded(open) {
   if (input) input.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
-// Live search as user types
+// Show cached cities on focus, filter as user types, Nominatim fallback
+function showCachedCitiesDropdown(filter) {
+  if (!cachedCities) return false;
+  const cities = Object.values(cachedCities);
+  const q = (filter || '').toLowerCase();
+  const matches = q ? cities.filter(c => c.name.toLowerCase().includes(q)) : cities;
+  if (matches.length === 0) return false;
+  matches.sort((a, b) => b.shopCount - a.shopCount);
+  const results = document.getElementById('citySearchResults');
+  const container = document.createDocumentFragment();
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:6px 12px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border)';
+  header.textContent = q ? 'Cached cities' : 'Instant load \u2014 ' + cities.length + ' cities cached';
+  container.appendChild(header);
+  matches.slice(0, 12).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'city-result';
+    div.setAttribute('role', 'option');
+    div.tabIndex = 0;
+    div.innerHTML = '<div class="city-result-name">' + escHtml(c.name) + '</div><div class="city-result-detail">' + c.shopCount + ' shops \u2022 instant</div>';
+    div.addEventListener('click', () => selectSearchResult(c.lat, c.lng, c.name));
+    div.addEventListener('keydown', e => { if (e.key === 'Enter') selectSearchResult(c.lat, c.lng, c.name); });
+    container.appendChild(div);
+  });
+  results.innerHTML = '';
+  results.appendChild(container);
+  results.classList.add('open');
+  updateCitySearchExpanded(true);
+  return true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('citySearchInput');
   if (input) {
+    // Show cached cities on focus when input is empty
+    input.addEventListener('focus', () => {
+      if (!input.value.trim()) showCachedCitiesDropdown();
+    });
     input.addEventListener('input', () => {
-      if (input.value.trim().length >= 2) searchCity();
-      else { document.getElementById('citySearchResults').classList.remove('open'); updateCitySearchExpanded(false); }
+      const q = input.value.trim();
+      if (q.length === 0) { showCachedCitiesDropdown(); return; }
+      // Try cached cities filter first
+      if (q.length >= 2 && !showCachedCitiesDropdown(q)) {
+        // No cached matches — fall back to Nominatim
+        searchCity();
+      } else if (q.length >= 2) {
+        // Had cached matches, but also kick off Nominatim after a delay for non-cached cities
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => searchCity(), 600);
+      } else if (q.length === 1) {
+        showCachedCitiesDropdown(q);
+      }
     });
   }
   // Close dropdown on click outside
@@ -1061,9 +1106,77 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.body.addEventListener('touchmove', function(e) {
-  if (e.target.closest('.shop-list') || e.target.closest('.detail-panel') || e.target.closest('.flavor-filters') || e.target.closest('#map')) return;
+  if (e.target.closest('.shop-list') || e.target.closest('.detail-panel') || e.target.closest('.flavor-filters') || e.target.closest('#map') || e.target.closest('.sheet-handle')) return;
   e.preventDefault();
 }, { passive: false });
+
+// =========== MOBILE BOTTOM SHEET ===========
+(function() {
+  if (window.innerWidth > 768) return;
+  const sidebar = document.querySelector('.sidebar');
+  const handle = sidebar?.querySelector('.sheet-handle');
+  if (!handle) return;
+
+  const SNAP_PEEK = 25;   // % of main container
+  const SNAP_HALF = 50;
+  const SNAP_FULL = 85;
+  let startY = 0, startH = 0, dragging = false;
+
+  function getMainHeight() {
+    return sidebar.parentElement.offsetHeight;
+  }
+
+  function snapTo(pct) {
+    sidebar.classList.remove('dragging');
+    sidebar.style.height = pct + '%';
+    // Reposition floating buttons above sheet
+    const btns = document.querySelectorAll('.find-near-me-btn,.map-locate-btn');
+    btns.forEach(b => b.style.bottom = (pct + 5) + '%');
+  }
+
+  handle.addEventListener('touchstart', function(e) {
+    dragging = true;
+    startY = e.touches[0].clientY;
+    startH = sidebar.offsetHeight;
+    sidebar.classList.add('dragging');
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    const dy = startY - e.touches[0].clientY;
+    const mainH = getMainHeight();
+    const newH = Math.max(mainH * 0.15, Math.min(mainH * 0.85, startH + dy));
+    sidebar.style.height = newH + 'px';
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', function() {
+    if (!dragging) return;
+    dragging = false;
+    const mainH = getMainHeight();
+    const pct = (sidebar.offsetHeight / mainH) * 100;
+    // Snap to nearest point
+    const snaps = [SNAP_PEEK, SNAP_HALF, SNAP_FULL];
+    const nearest = snaps.reduce((a, b) => Math.abs(b - pct) < Math.abs(a - pct) ? b : a);
+    snapTo(nearest);
+  });
+
+  // Handle also responds to taps (toggle between peek and half)
+  handle.addEventListener('click', function() {
+    const mainH = getMainHeight();
+    const pct = (sidebar.offsetHeight / mainH) * 100;
+    snapTo(pct < 40 ? SNAP_HALF : SNAP_PEEK);
+  });
+
+  // Re-init on orientation change
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+      sidebar.style.height = '';
+      sidebar.classList.remove('dragging');
+    }
+  });
+})();
 
 </script>
 </body>
