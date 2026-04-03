@@ -1,6 +1,6 @@
 {
   "name": "brewmap",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "description": "Coffee shop discovery app with real Yelp reviews + flavor profiles — powered by OpenStreetMap + Yelp + Cloudflare KV",
   "type": "module",
   "scripts": {

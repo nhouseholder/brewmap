@@ -43,7 +43,7 @@ const CITIES = [
   { slug: 'honolulu',       name: 'Honolulu, HI',       lat: 21.3069,  lng: -157.8583, radiusMi: 4 },
 ];
 
-const CITY_DELAY_MS = 2000; // 2s between cities (conservative for Overpass)
+const CITY_DELAY_MS = 3000; // 3s between cities (Galveston #29 hit rate limits at 2s)
 
 // =========== MAIN ===========
 async function main() {
