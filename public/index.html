@@ -295,7 +295,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v4.3 — Local Coffee Discovery</span>
+      <span>BrewMap v5.1 — Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
@@ -425,6 +425,11 @@ function updateDataSourceBadge(source, updatedAt) {
     el.style.display = 'inline-flex';
     el.style.background = 'rgba(93,186,125,0.15)';
     el.style.color = '#5dba7d';
+  } else if (source === 'discovered') {
+    el.innerHTML = '✨ Freshly discovered';
+    el.style.display = 'inline-flex';
+    el.style.background = 'rgba(93,141,232,0.15)';
+    el.style.color = '#5d8de8';
   } else {
     el.innerHTML = '🔄 Live API';
     el.style.display = 'inline-flex';
@@ -823,7 +828,9 @@ async function scanArea() {
         const shops = cached.shops.map(s => ({
           ...s,
           distance: getDistance(userLat, userLng, s.lat, s.lng),
-          reviews: generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
+          reviews: s.yelpReviews && s.yelpReviews.length > 0
+            ? s.yelpReviews.map(r => ({ text: r.text, source: 'Yelp', rating: r.rating, user: r.user, flavorsFound: [] }))
+            : generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
         })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
         if (shops.length === 0) {
@@ -844,77 +851,43 @@ async function scanArea() {
       }
     }
 
-    // === FALLBACK: LIVE OVERPASS ===
-    updateLoading('Scanning for coffee shops...', 'Searching OpenStreetMap database');
-    const rm = radiusMiles * 1609.34;
-    const q1 = '[out:json][timeout:25];(node["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');way["amenity"="cafe"](around:'+rm+','+userLat+','+userLng+');node["cuisine"~"coffee"](around:'+rm+','+userLat+','+userLng+');node["shop"="coffee"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
-    let d1;
-    const overpassUrls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.openstreetmap.ru/api/interpreter'];
-    for (const apiUrl of overpassUrls) {
-      try {
-        const r1 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q1),signal:AbortSignal.any([scanAbort, AbortSignal.timeout(25000)])});
-        if (!r1.ok) { console.warn('Overpass returned ' + r1.status + ' from ' + apiUrl); continue; }
-        d1 = await r1.json();
-        if (d1.elements) break;
-      } catch(e) { console.warn('Overpass fetch failed from ' + apiUrl + ':', e); }
-    }
-    if (!d1 || !d1.elements) { throw new Error('All Overpass API endpoints failed. Please try again in a moment.'); }
-    let allElements = [...d1.elements];
-
-    // Phase 2: Expand if few results
-    if (allElements.filter(e=>e.tags&&e.tags.name).length < 20) {
-      updateLoading('Expanding search...', 'Looking for more coffee spots by name');
-      try {
-        const q2 = '[out:json][timeout:25];(node["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast|Bean|bean|Brew|brew|Latte|latte"](around:'+rm+','+userLat+','+userLng+');way["name"~"Coffee|coffee|Cafe|cafe|Espresso|espresso|Roast|roast"](around:'+rm+','+userLat+','+userLng+'););out center tags;';
-        for (const apiUrl of overpassUrls) {
-          try {
-            const r2 = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q2),signal:AbortSignal.any([scanAbort, AbortSignal.timeout(10000)])});
-            if (!r2.ok) continue;
-            const d2 = await r2.json();
-            if (d2.elements) { allElements = allElements.concat(d2.elements); break; }
-          } catch(e) { console.warn('Expanded search failed from ' + apiUrl + ':', e); }
-        }
-      } catch(e) { console.warn('Expanded search failed:', e); }
+    // === FALLBACK: ON-DEMAND DISCOVER (server-side scrape + cache) ===
+    updateLoading('Discovering coffee shops...', 'Scanning and caching this area');
+    const cityName = document.getElementById('locationText').textContent || 'Unknown Area';
+    const discoverRes = await fetch('/api/city/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: userLat, lng: userLng, name: cityName, radiusMi: radiusMiles }),
+      signal: scanAbort,
+    });
+    const discoverData = await discoverRes.json();
+    if (!discoverRes.ok || !discoverData.available) {
+      throw new Error(discoverData.error || 'Could not discover coffee shops in this area.');
     }
 
-    updateLoading('Processing '+allElements.length+' places...', 'Filtering chains and generating flavor estimates');
+    const shops = discoverData.shops.map(s => ({
+      ...s,
+      distance: getDistance(userLat, userLng, s.lat, s.lng),
+      reviews: s.yelpReviews && s.yelpReviews.length > 0
+        ? s.yelpReviews.map(r => ({ text: r.text, source: 'Yelp', rating: r.rating, user: r.user, flavorsFound: [] }))
+        : generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
+    })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
-    const chains = ['starbucks','dunkin','peet','mcdonald','tim horton','panera','caribou','subway','burger','wendy','taco','pizza','popeye','chick-fil','jack in','sonic','whataburger','ihop','denny','krispy','dairy queen'];
-    const coffeeKeywords = ['coffee','espresso','roast','brew','bean','latte','cappuccino','mocha','drip','pourover','pour over','cold brew','coffeehouse','coffee house','café','roaster','roastery','caffeinated'];
-    const notCoffeePrimary = ['tea house','tea room','boba','bubble tea','bakery','baking','bagel','donut','doughnut','pizza','burger','taco','burrito','sushi','ramen','noodle','pho','thai','chinese','indian','mexican','italian','greek','bbq','barbecue','bar & grill','bar and grill','pub','tavern','brewery','winery','smoothie','juice bar','ice cream','gelato','frozen yogurt','catering','deli','sandwich','sub shop','wings'];
-    function isCoffeeForward(el) {
-      const tags = el.tags || {};
-      const name = (tags.name || '').toLowerCase();
-      const cuisine = (tags.cuisine || '').toLowerCase();
-      if (tags.shop === 'coffee') return true;
-      if (cuisine.includes('coffee')) return true;
-      const hasCK = coffeeKeywords.some(k => name.includes(k));
-      const hasNC = notCoffeePrimary.some(k => name.includes(k));
-      if (hasCK) return true;
-      if (tags.amenity === 'cafe') {
-        const ncCuisine = ['tea','bubble_tea','bakery','sandwich','pizza','ice_cream','juice'];
-        if (ncCuisine.some(c => cuisine.includes(c)) && !cuisine.includes('coffee')) return false;
-        if (!hasNC) return true;
-      }
-      return false;
+    // Update cached cities in memory so this city appears in dropdown
+    if (discoverData.source === 'discovered' && cachedCities) {
+      cachedCities[discoverData.city] = {
+        slug: discoverData.city, name: cityName,
+        lat: discoverData.lat, lng: discoverData.lng,
+        shopCount: discoverData.shopCount,
+      };
     }
-    const seen = new Set();
-    let shops = allElements
-      .filter(el => { if(!el.tags||!el.tags.name||seen.has(el.id)) return false; seen.add(el.id); return true; })
-      .filter(el => { const n=el.tags.name.toLowerCase(); return !chains.some(c=>n.includes(c)); })
-      .filter(el => isCoffeeForward(el))
-      .map((el,i) => {
-        const lat=el.lat||el.center?.lat, lng=el.lon||el.center?.lon;
-        if(!lat||!lng) return null;
-        return {id:el.id,name:el.tags.name,lat,lng,distance:getDistance(userLat,userLng,lat,lng),address:buildAddress(el.tags),hours:el.tags.opening_hours||null,website:el.tags.website||el.tags['contact:website']||null,phone:el.tags.phone||el.tags['contact:phone']||null,...generateReviewData(el.tags.name,el.tags,i)};
-      }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
 
     allShops = shops; filteredShops = [...shops];
     renderShopList(); renderMapMarkers();
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('refreshBtn').style.display = 'flex';
-    document.getElementById('resultsCount').textContent = shops.length+' coffee shops found';
-    updateDataSourceBadge('overpass');
+    document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
+    updateDataSourceBadge(discoverData.source === 'cached' ? 'cached' : 'discovered', discoverData.updatedAt);
     updateStats();
     updateHash();
   } catch(err) {
@@ -1000,7 +973,7 @@ function renderShopList() {
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
     '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)</div></div>'
+    '<div class="ai-badge">'+(shop.dataSource==='yelp'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Yelp verified ratings &amp; reviews':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)')+'</div></div>'
   ).join('');
 }
 
@@ -1013,7 +986,7 @@ function renderMapMarkers() {
     const mc = FLAVOR_BAR_COLORS[tf]||'#d4a053';
     const icon = L.divIcon({className:'',html:'<div class="coffee-marker" style="background:'+mc+'"><span class="coffee-marker-inner">&#9749;</span></div>',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
     const marker = L.marker([shop.lat,shop.lng],{icon}).addTo(map)
-      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+shop.flavorTags.slice(0,4).map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
+      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)'+(shop.dataSource==='yelp'?' <span style="font-size:10px;opacity:0.7;">via Yelp</span>':'')+'</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+shop.flavorTags.slice(0,4).map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
     marker.on('click',()=>selectShop(shop.id));
     markers[shop.id] = marker;
   });
@@ -1038,11 +1011,11 @@ function selectShop(id) {
   if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
-  document.getElementById('detailReviewCount').textContent='Estimated profile (not from real reviews)';
+  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>':'Estimated profile (not from real reviews)';
   document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');
-  document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});return '<div class="review-quote">"'+t+'"<div class="review-source">'+r.source+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
+  document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);if(r.flavorsFound)r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});const src=r.source==='Yelp'?(r.user?r.user+' on Yelp':'Yelp'):r.source;return '<div class="review-quote">"'+t+'"<div class="review-source">'+escHtml(src)+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
   const panel = document.getElementById('detailPanel');
   panel.classList.add('open');
   panel.focus();

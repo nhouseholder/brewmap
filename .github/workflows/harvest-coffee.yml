@@ -28,3 +28,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: e246c909cd0c462975902369c8aa7512
           CLOUDFLARE_KV_NAMESPACE_ID: 22929c29cd1e40cc8399c91e0e6843e2
+
+      - name: Enrich with Yelp reviews
+        if: ${{ secrets.YELP_API_KEY != '' }}
+        run: node scripts/enrich-with-yelp.mjs
+        env:
+          YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: e246c909cd0c462975902369c8aa7512
+          CLOUDFLARE_KV_NAMESPACE_ID: 22929c29cd1e40cc8399c91e0e6843e2
