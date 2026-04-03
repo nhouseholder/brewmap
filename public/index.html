@@ -155,6 +155,8 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .loading-text{font-size:14px;color:var(--text2);text-align:center}
   .loading-step{font-size:12px;color:var(--text3);text-align:center;max-width:280px}
+  .skip-location-btn{margin-top:16px;background:transparent;border:1px solid var(--border);color:var(--text2);padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s}
+  .skip-location-btn:hover{background:var(--surface2);color:var(--text)}
   .skeleton-card{padding:12px;margin-bottom:4px}
   .skeleton-line{height:10px;background:var(--surface2);border-radius:6px;margin-bottom:6px;animation:shimmer 1.5s infinite}
   .skeleton-line.w60{width:60%}.skeleton-line.w40{width:40%}.skeleton-line.w80{width:80%}.skeleton-line.h8{height:8px}
@@ -295,7 +297,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v5.1 — Local Coffee Discovery</span>
+      <span>BrewMap v5.2 — Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
@@ -346,6 +348,7 @@
       <div class="spinner"></div>
       <div class="loading-text" id="loadingText">Finding your location...</div>
       <div class="loading-step" id="loadingStep">Please allow location access when prompted</div>
+      <button class="skip-location-btn" id="skipLocationBtn" style="display:none" onclick="skipGeolocation()">Skip — search manually</button>
     </div>
   </div>
 </div>
@@ -698,9 +701,11 @@ function findNearMe() {
   btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Locating...';
 
   document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('skipLocationBtn').style.display = 'inline-block';
   updateLoading('Getting your location...', 'Please allow location access when prompted');
 
   navigator.geolocation.getCurrentPosition(pos => {
+    document.getElementById('skipLocationBtn').style.display = 'none';
     hasUsedLocation = true;
     currentCity = 'current';
     CITIES.current.lat = pos.coords.latitude;
@@ -733,6 +738,7 @@ function findNearMe() {
     btn.classList.remove('scanning');
     btn.innerHTML = '<div class="find-near-me-pulse"></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Find Coffee Near Me';
     document.getElementById('loadingOverlay').classList.add('hidden');
+    document.getElementById('skipLocationBtn').style.display = 'none';
     if (err.code === 1) {
       alert('Location access was denied. Please enable location services in your device settings and try again.');
     } else {
@@ -743,6 +749,15 @@ function findNearMe() {
     timeout: 15000,
     maximumAge: 60000
   });
+}
+
+function skipGeolocation() {
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById('skipLocationBtn').style.display = 'none';
+  const btn = document.getElementById('findNearMeBtn');
+  if (btn) { btn.classList.remove('scanning'); btn.innerHTML = '<div class="find-near-me-pulse"></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Find Coffee Near Me'; }
+  const input = document.getElementById('citySearchInput');
+  if (input) { input.focus(); input.click(); }
 }
 
 function locateMe() {
