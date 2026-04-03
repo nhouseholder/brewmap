@@ -1,49 +1,13 @@
 // BrewMap — Overpass API query logic (Worker-compatible)
-// Mirror of scripts/lib/overpass.mjs — uses fetch() (native in Workers)
+// Uses shared coffee-filter module — single source of truth for filtering logic
+
+import { isCoffeeForward, isChain } from '../../shared/coffee-filter.mjs';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-
-const CHAINS = [
-  'starbucks','dunkin','peet','mcdonald','tim horton','panera','caribou',
-  'subway','burger','wendy','taco','pizza','popeye','chick-fil','jack in',
-  'sonic','whataburger','ihop','denny','krispy','dairy queen'
-];
-
-const COFFEE_KEYWORDS = [
-  'coffee','espresso','roast','brew','bean','latte','cappuccino','mocha',
-  'drip','pourover','pour over','cold brew','coffeehouse','coffee house',
-  'café','roaster','roastery','caffeinated'
-];
-
-const NOT_COFFEE_PRIMARY = [
-  'tea house','tea room','boba','bubble tea','bakery','baking','bagel',
-  'donut','doughnut','pizza','burger','taco','burrito','sushi','ramen',
-  'noodle','pho','thai','chinese','indian','mexican','italian','greek',
-  'bbq','barbecue','bar & grill','bar and grill','pub','tavern','brewery',
-  'winery','smoothie','juice bar','ice cream','gelato','frozen yogurt',
-  'catering','deli','sandwich','sub shop','wings'
-];
-
-function isCoffeeForward(el) {
-  const tags = el.tags || {};
-  const name = (tags.name || '').toLowerCase();
-  const cuisine = (tags.cuisine || '').toLowerCase();
-  if (tags.shop === 'coffee') return true;
-  if (cuisine.includes('coffee')) return true;
-  const hasCoffeeKeyword = COFFEE_KEYWORDS.some(k => name.includes(k));
-  const hasNonCoffee = NOT_COFFEE_PRIMARY.some(k => name.includes(k));
-  if (hasCoffeeKeyword) return true;
-  if (tags.amenity === 'cafe') {
-    const nonCoffeeCuisine = ['tea','bubble_tea','bakery','sandwich','pizza','ice_cream','juice'];
-    if (nonCoffeeCuisine.some(c => cuisine.includes(c)) && !cuisine.includes('coffee')) return false;
-    if (!hasNonCoffee) return true;
-  }
-  return false;
-}
 
 async function fetchOverpass(query, timeout) {
   for (const url of OVERPASS_ENDPOINTS) {
@@ -116,7 +80,7 @@ export async function queryOverpass(lat, lng, radiusMeters) {
   const seen = new Set();
   return allElements
     .filter(el => { if (!el.tags?.name || seen.has(el.id)) return false; seen.add(el.id); return true; })
-    .filter(el => !CHAINS.some(c => el.tags.name.toLowerCase().includes(c)))
+    .filter(el => !isChain(el.tags.name))
     .filter(el => isCoffeeForward(el))
     .map(el => parseShopFromElement(el))
     .filter(Boolean);
