@@ -99,6 +99,40 @@ export function extractFlavorProfile(reviewTexts, fallbackProfile = null) {
   };
 }
 
+/**
+ * Combine flavor profiles from multiple sources with weighted confidence.
+ * Website tasting notes (2x) > Yelp reviews (1x) > AI estimate (0.3x)
+ *
+ * @param {object|null} websiteProfile - From website scraping
+ * @param {object|null} reviewProfile - From Yelp review extraction
+ * @param {object|null} aiProfile - Deterministic AI estimate
+ * @returns {{ flavorProfile, flavorTags }}
+ */
+export function combineFlavorSources(websiteProfile, reviewProfile, aiProfile) {
+  const combined = {};
+  const weights = { website: 2.0, review: 1.0, ai: 0.3 };
+
+  function addProfile(profile, weight) {
+    if (!profile) return;
+    for (const [tag, score] of Object.entries(profile)) {
+      combined[tag] = (combined[tag] || 0) + score * weight;
+    }
+  }
+
+  addProfile(websiteProfile, weights.website);
+  addProfile(reviewProfile, weights.review);
+  addProfile(aiProfile, weights.ai);
+
+  // Normalize to 0-100
+  const maxScore = Math.max(...Object.values(combined), 1);
+  const flavorProfile = {};
+  for (const [tag, score] of Object.entries(combined)) {
+    flavorProfile[tag] = Math.max(5, Math.round((score / maxScore) * 95));
+  }
+
+  return { flavorProfile, flavorTags: profileToTags(flavorProfile) };
+}
+
 function profileToTags(profile) {
   return Object.entries(profile)
     .sort((a, b) => b[1] - a[1])

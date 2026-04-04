@@ -90,6 +90,16 @@ export async function writeCityToKV(city, shops) {
     if (s.yelpReviewCount != null) shop.yelpReviewCount = s.yelpReviewCount;
     if (s.yelpReviews) shop.yelpReviews = s.yelpReviews;
     if (s.yelpEnrichedAt) shop.yelpEnrichedAt = s.yelpEnrichedAt;
+    // Preserve website/bean enrichment fields if present
+    if (s.beanOrigins) shop.beanOrigins = s.beanOrigins;
+    if (s.beanRegions) shop.beanRegions = s.beanRegions;
+    if (s.roastLevel) shop.roastLevel = s.roastLevel;
+    if (s.beanType) shop.beanType = s.beanType;
+    if (s.beanTraits) shop.beanTraits = s.beanTraits;
+    if (s.processMethod) shop.processMethod = s.processMethod;
+    if (s.websiteTastingNotes) shop.websiteTastingNotes = s.websiteTastingNotes;
+    if (s.flavorSource) shop.flavorSource = s.flavorSource;
+    if (s.websiteScrapedAt) shop.websiteScrapedAt = s.websiteScrapedAt;
     return shop;
   });
 
