@@ -158,6 +158,12 @@
   .detail-action-btn.primary{background:linear-gradient(135deg,var(--accent),#b8863a);color:#000;border:none}
   .detail-action-btn.secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
   .detail-action-btn.secondary:hover{border-color:var(--text3);color:var(--text)}
+  .similar-shop{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--radius-sm);cursor:pointer;transition:background 0.15s}
+  .similar-shop:hover{background:var(--surface2)}
+  .similar-shop-info{flex:1;min-width:0}
+  .similar-shop-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .similar-shop-meta{font-size:10px;color:var(--text3)}
+  .similar-shop-match{font-size:11px;font-weight:600;color:var(--green);white-space:nowrap}
   .detail-name{font-size:16px;font-weight:700;margin-bottom:4px;padding-right:36px}
   .detail-address{font-size:12px;color:var(--text2);margin-bottom:8px}
   .detail-rating-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -385,6 +391,10 @@
       <div class="detail-section">
         <div class="detail-section-title">Review Highlights</div>
         <div class="review-quotes" id="reviewQuotes"></div>
+      </div>
+      <div class="detail-section" id="similarShopsSection" style="display:none">
+        <div class="detail-section-title">Similar Flavor Profiles</div>
+        <div id="similarShops"></div>
       </div>
       <div class="detail-section" id="dataSourcesSection">
       </div>
@@ -1091,6 +1101,41 @@ function renderShopList() {
   ).join('');
 }
 
+function shopSimilarity(a, b) {
+  if (!a.flavorProfile || !b.flavorProfile) return 0;
+  const allTags = new Set([...Object.keys(a.flavorProfile), ...Object.keys(b.flavorProfile)]);
+  let dot = 0, magA = 0, magB = 0;
+  for (const tag of allTags) {
+    const va = a.flavorProfile[tag] || 0;
+    const vb = b.flavorProfile[tag] || 0;
+    dot += va * vb; magA += va * va; magB += vb * vb;
+  }
+  if (magA === 0 || magB === 0) return 0;
+  return Math.round((dot / (Math.sqrt(magA) * Math.sqrt(magB))) * 100);
+}
+
+function findSimilarShops(shop, allShops, count = 4) {
+  return allShops
+    .filter(s => s.id !== shop.id)
+    .map(s => ({ shop: s, similarity: shopSimilarity(shop, s) }))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, count);
+}
+
+function renderSimilarShops(shop) {
+  const similar = findSimilarShops(shop, allShops);
+  const section = document.getElementById('similarShopsSection');
+  const container = document.getElementById('similarShops');
+  if (similar.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  container.innerHTML = similar.map(({ shop: s, similarity }) =>
+    '<div class="similar-shop" onclick="selectShop(' + s.id + ')">' +
+    '<div class="similar-shop-info"><div class="similar-shop-name">' + escHtml(s.name) + '</div>' +
+    '<div class="similar-shop-meta">' + formatDistance(s.distance) + ' · ' + s.flavorTags.slice(0, 3).map(f => f.tag).join(', ') + '</div></div>' +
+    '<div class="similar-shop-match">' + similarity + '% match</div></div>'
+  ).join('');
+}
+
 function flavorBadge(shop) {
   const check = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
   const info = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>';
@@ -1184,6 +1229,7 @@ function selectShop(id) {
   document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);if(r.flavorsFound)r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});const src=r.source==='Yelp'?(r.user?r.user+' on Yelp':'Yelp'):r.source;return '<div class="review-quote">"'+t+'"<div class="review-source">'+escHtml(src)+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
   document.getElementById('flavorProfileTitle').textContent=flavorProfileTitle(shop);
   document.getElementById('dataSourcesSection').innerHTML=dataSourcesHtml(shop);
+  renderSimilarShops(shop);
   const panel = document.getElementById('detailPanel');
   panel.classList.add('open');
   panel.focus();
