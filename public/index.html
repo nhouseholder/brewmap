@@ -997,7 +997,7 @@ function renderShopList() {
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
     '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge">'+(shop.dataSource==='yelp'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Yelp verified ratings &amp; reviews':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)')+'</div></div>'
+    '<div class="ai-badge">'+(shop.flavorSource==='yelp-reviews'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Flavor profile from real Yelp reviews':shop.dataSource==='yelp'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Yelp verified ratings':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)')+'</div></div>'
   ).join('');
 }
 
@@ -1035,7 +1035,7 @@ function selectShop(id) {
   if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
-  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>':'Estimated profile (not from real reviews)';
+  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>'+(shop.flavorSource==='yelp-reviews'?' · flavors from reviews':''):'Estimated profile (not from real reviews)';
   document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');

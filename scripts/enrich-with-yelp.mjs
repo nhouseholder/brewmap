@@ -7,6 +7,7 @@
 // Skip reviews (ratings only): SKIP_REVIEWS=1 node scripts/enrich-with-yelp.mjs
 
 import { searchCityYelp, fetchYelpReviews, matchShops, mergeYelpData } from './lib/yelp.mjs';
+import { extractFlavorProfile } from './lib/flavor-extract.mjs';
 import { kvPut } from './lib/kv-writer.mjs';
 
 const YELP_API_KEY = process.env.YELP_API_KEY;
@@ -105,7 +106,7 @@ async function main() {
           stats.totalReviews += reviews.length;
           if (reviews.length > 0) await sleep(REVIEW_DELAY_MS);
         }
-        enrichedShops.push(mergeYelpData(shop, yelpBiz, reviews));
+        enrichedShops.push(mergeYelpData(shop, yelpBiz, reviews, extractFlavorProfile));
       }
 
       // 6. Keep unmatched shops with AI estimates
