@@ -30,7 +30,6 @@ jobs:
           CLOUDFLARE_KV_NAMESPACE_ID: 22929c29cd1e40cc8399c91e0e6843e2
 
       - name: Enrich with Yelp reviews
-        if: ${{ secrets.YELP_API_KEY != '' }}
         run: node scripts/enrich-with-yelp.mjs
         env:
           YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
