@@ -373,16 +373,14 @@
         <div id="detailExtras" style="margin-top:8px;display:none;"></div>
       </div>
       <div class="detail-section">
-        <div class="detail-section-title">Estimated Flavor Profile</div>
+        <div class="detail-section-title" id="flavorProfileTitle">Flavor Profile</div>
         <div class="flavor-profile-chart" id="flavorChart"></div>
       </div>
       <div class="detail-section">
         <div class="detail-section-title">Review Highlights</div>
         <div class="review-quotes" id="reviewQuotes"></div>
-        <div class="ai-badge" style="margin-top:8px;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>
-          Flavor estimates generated from shop name and category — not from real reviews
-        </div>
+      </div>
+      <div class="detail-section" id="dataSourcesSection">
       </div>
     </div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -1090,10 +1088,36 @@ function renderShopList() {
 function flavorBadge(shop) {
   const check = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
   const info = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>';
-  if (shop.flavorSource === 'website') return check + 'Verified from shop website';
-  if (shop.flavorSource === 'yelp-reviews') return check + 'Flavor from Yelp reviews';
-  if (shop.dataSource === 'yelp') return check + 'Yelp verified ratings';
-  return info + 'AI-estimated flavor profile (not real reviews)';
+  // Count data sources
+  const sources = [];
+  if (shop.flavorSource === 'website' || shop.beanOrigins) sources.push('website');
+  if (shop.dataSource === 'yelp' || shop.flavorSource === 'yelp-reviews') sources.push('yelp');
+  if (sources.length === 0) sources.push('ai');
+  const count = sources.length;
+  if (shop.flavorSource === 'website') return '<span style="color:var(--green)">' + check + '</span> Verified · ' + count + ' source' + (count > 1 ? 's' : '');
+  if (shop.flavorSource === 'yelp-reviews') return '<span style="color:var(--blue)">' + check + '</span> Yelp reviews · ' + count + ' source' + (count > 1 ? 's' : '');
+  if (shop.dataSource === 'yelp') return '<span style="color:var(--blue)">' + check + '</span> Yelp rated';
+  return info + ' Estimated flavor';
+}
+
+function flavorProfileTitle(shop) {
+  if (shop.flavorSource === 'website') return 'Flavor Profile (from website)';
+  if (shop.flavorSource === 'yelp-reviews') return 'Flavor Profile (from reviews)';
+  return 'Flavor Profile (estimated)';
+}
+
+function dataSourcesHtml(shop) {
+  let html = '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:6px">Data Sources</div>';
+  // Rating source
+  if (shop.dataSource === 'yelp') html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">&#9733; Rating: <span style="color:var(--text)">Yelp (' + shop.rating + ')</span></div>';
+  else html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">&#9733; Rating: <span style="color:var(--text3)">Estimated</span></div>';
+  // Flavor source
+  if (shop.flavorSource === 'website') html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">&#127912; Flavors: <span style="color:var(--green)">Shop website</span></div>';
+  else if (shop.flavorSource === 'yelp-reviews') html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">&#127912; Flavors: <span style="color:var(--blue)">Yelp reviews</span></div>';
+  else html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">&#127912; Flavors: <span style="color:var(--text3)">AI estimate</span></div>';
+  // Origins source
+  if (shop.beanOrigins) html += '<div style="font-size:11px;color:var(--text2)">&#127758; Origins: <span style="color:var(--green)">Shop website</span></div>';
+  return html;
 }
 
 function renderStars(rating) { let h=''; for(let i=1;i<=5;i++) h+='<span class="star '+(i<=Math.round(rating)?'':'empty')+'">&#9733;</span>'; return h; }
@@ -1141,11 +1165,13 @@ function selectShop(id) {
   if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
-  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>'+(shop.flavorSource==='yelp-reviews'?' · flavors from reviews':''):'Estimated profile (not from real reviews)';
+  document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>':'Estimated';
   document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');
   document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);if(r.flavorsFound)r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});const src=r.source==='Yelp'?(r.user?r.user+' on Yelp':'Yelp'):r.source;return '<div class="review-quote">"'+t+'"<div class="review-source">'+escHtml(src)+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
+  document.getElementById('flavorProfileTitle').textContent=flavorProfileTitle(shop);
+  document.getElementById('dataSourcesSection').innerHTML=dataSourcesHtml(shop);
   const panel = document.getElementById('detailPanel');
   panel.classList.add('open');
   panel.focus();
