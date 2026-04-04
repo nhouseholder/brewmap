@@ -94,6 +94,14 @@
   .rating-filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);padding:4px 0}
   .rating-filter input[type="range"]{flex:1;accent-color:var(--accent);min-width:100px}
   .rating-filter .rating-value{font-weight:600;color:var(--accent);min-width:28px;text-align:right}
+  .filter-row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .roast-pills{display:flex;gap:4px}
+  .roast-pill{padding:5px 10px;border-radius:16px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.15s;font-family:inherit;-webkit-appearance:none}
+  .roast-pill.active{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+  .roast-pill:active{transform:scale(0.95)}
+  .roast-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
+  .roast-dot.light{background:#e8d070}.roast-dot.medium{background:#d4a053}.roast-dot.dark{background:#8B5A2B}
+  .origin-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text);font-size:11px;font-family:inherit;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 12L2 6h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:20px;max-width:140px}
   .flavor-craving{margin-bottom:2px}
   .flavor-craving-label{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
   .flavor-craving-label button{background:none;border:none;color:var(--accent);font-size:10px;cursor:pointer;font-family:inherit;padding:0}
@@ -299,6 +307,17 @@
         <input type="range" id="ratingSlider" min="0" max="5" value="0" step="0.5" oninput="updateRatingFilter()" aria-label="Minimum rating filter">
         <span class="rating-value" id="ratingLabel">0</span>
         <span>&#9733;</span>
+      </div>
+      <div class="filter-row2">
+        <div class="roast-pills">
+          <button class="roast-pill active" onclick="setRoastFilter('')" data-roast="">All</button>
+          <button class="roast-pill" onclick="setRoastFilter('light')" data-roast="light"><span class="roast-dot light"></span>Light</button>
+          <button class="roast-pill" onclick="setRoastFilter('medium')" data-roast="medium"><span class="roast-dot medium"></span>Medium</button>
+          <button class="roast-pill" onclick="setRoastFilter('dark')" data-roast="dark"><span class="roast-dot dark"></span>Dark</button>
+        </div>
+        <select class="origin-select" id="originSelect" onchange="filterShops()">
+          <option value="">All Origins</option>
+        </select>
       </div>
       <div class="flavor-craving">
         <div class="flavor-craving-label"><span>What flavor are you craving?</span><button id="clearFlavorsBtn" onclick="clearFlavorSelection()" style="display:none">Clear</button></div>
@@ -718,6 +737,27 @@ function renderFlavorFilters() {
   document.getElementById('clearFlavorsBtn').style.display = activeFlavorFilters.size > 0 ? 'inline' : 'none';
 }
 
+let activeRoastFilter = '';
+function setRoastFilter(level) {
+  activeRoastFilter = level;
+  document.querySelectorAll('.roast-pill').forEach(p => p.classList.toggle('active', p.dataset.roast === level));
+  filterShops();
+}
+
+function populateOriginFilter() {
+  const origins = new Set();
+  allShops.forEach(s => { if (s.beanOrigins) s.beanOrigins.forEach(o => origins.add(o)); });
+  const sel = document.getElementById('originSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Origins (' + origins.size + ')</option>';
+  [...origins].sort().forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+  sel.value = current; // preserve selection
+}
+
 function clearFlavorSelection() {
   activeFlavorFilters.clear();
   if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
@@ -905,6 +945,7 @@ async function scanArea() {
           console.log('[Cache] No shops within ' + radiusMiles + 'mi — falling back to Overpass');
         } else {
           allShops = shops; filteredShops = [...shops];
+          populateOriginFilter();
           renderShopList(); renderMapMarkers();
           document.getElementById('loadingOverlay').classList.add('hidden');
           document.getElementById('refreshBtn').style.display = 'flex';
@@ -950,6 +991,7 @@ async function scanArea() {
     }
 
     allShops = shops; filteredShops = [...shops];
+    populateOriginFilter();
     renderShopList(); renderMapMarkers();
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('refreshBtn').style.display = 'flex';
@@ -1127,11 +1169,16 @@ function filterShops() {
   const search=document.getElementById('searchInput').value.toLowerCase();
   const sort=document.getElementById('sortSelect').value;
   const minRating=parseFloat(document.getElementById('ratingSlider').value)||0;
+  const originFilter=document.getElementById('originSelect').value;
   filteredShops = allShops.filter(shop=>{
     if(search&&!shop.name.toLowerCase().includes(search)&&!(shop.address||'').toLowerCase().includes(search))return false;
     if(activeFlavorFilters.size>0){const sf=new Set(shop.flavorTags.map(f=>f.tag));for(const fl of activeFlavorFilters){if(!sf.has(fl))return false;}}
     if(shop.distance>radiusMiles)return false;
     if(minRating>0&&shop.rating<minRating)return false;
+    // Roast filter — shops without roast data pass (not penalized)
+    if(activeRoastFilter&&shop.roastLevel&&!shop.roastLevel.includes(activeRoastFilter))return false;
+    // Origin filter
+    if(originFilter&&(!shop.beanOrigins||!shop.beanOrigins.includes(originFilter)))return false;
     return true;
   });
   // Compute flavor match scores
