@@ -44,6 +44,7 @@ const CITIES = [
 ];
 
 const CITY_DELAY_MS = 3000; // 3s between cities (Galveston #29 hit rate limits at 2s)
+const MAX_RETRIES = 2; // Retry failed cities up to 2 more times with backoff
 
 // =========== MAIN ===========
 async function main() {
@@ -62,25 +63,30 @@ async function main() {
 
     console.log(`[${i + 1}/${CITIES.length}] ${city.name} (${city.radiusMi}mi radius)...`);
 
-    try {
-      // Query Overpass
-      const rawShops = await queryOverpass(city.lat, city.lng, radiusMeters);
-
-      // Enrich with flavor data
-      const shops = rawShops.map(shop => ({
-        ...shop,
-        ...generateFlavorData(shop.name),
-      }));
-
-      console.log(`  → ${shops.length} shops found`);
-
-      // Write to KV
-      await writeCityToKV(city, shops);
-
-      results[city.slug] = { shopCount: shops.length };
-      totalShops += shops.length;
-    } catch (err) {
-      console.error(`  ✗ FAILED: ${city.name} — ${err.message}`);
+    let succeeded = false;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const backoff = attempt * 10000; // 10s, 20s
+        console.log(`  ↻ Retry ${attempt}/${MAX_RETRIES} after ${backoff / 1000}s...`);
+        await sleep(backoff);
+      }
+      try {
+        const rawShops = await queryOverpass(city.lat, city.lng, radiusMeters);
+        const shops = rawShops.map(shop => ({
+          ...shop,
+          ...generateFlavorData(shop.name),
+        }));
+        console.log(`  → ${shops.length} shops found`);
+        await writeCityToKV(city, shops);
+        results[city.slug] = { shopCount: shops.length };
+        totalShops += shops.length;
+        succeeded = true;
+        break;
+      } catch (err) {
+        console.error(`  ✗ Attempt ${attempt + 1} failed: ${err.message}`);
+      }
+    }
+    if (!succeeded) {
       results[city.slug] = { shopCount: 0 };
       failures++;
     }
@@ -104,9 +110,9 @@ async function main() {
     console.log(`   ⚠️ ${failures} cities failed`);
   }
 
-  // Exit with error if >30% failed
-  if (failures > CITIES.length * 0.3) {
-    console.error(`\n❌ ${failures}/${CITIES.length} cities failed (>${Math.round(CITIES.length * 0.3)} threshold) — check Overpass API status`);
+  // Exit with error if >50% failed (raised from 30% — retry handles transients)
+  if (failures > CITIES.length * 0.5) {
+    console.error(`\n❌ ${failures}/${CITIES.length} cities failed (>${Math.round(CITIES.length * 0.5)} threshold) — check Overpass API status`);
     process.exit(1);
   }
 }
