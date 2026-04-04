@@ -91,6 +91,9 @@
   .sort-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 12L2 6h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
   .radius-control{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:13px;color:var(--text2)}
   .radius-control input[type="range"]{width:70px;accent-color:var(--accent)}
+  .rating-filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);padding:4px 0}
+  .rating-filter input[type="range"]{flex:1;accent-color:var(--accent);min-width:100px}
+  .rating-filter .rating-value{font-weight:600;color:var(--accent);min-width:28px;text-align:right}
   .flavor-filters{display:flex;flex-wrap:wrap;gap:5px}
   .flavor-tag{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.15s;user-select:none;-webkit-user-select:none;font-family:inherit;-webkit-appearance:none;appearance:none;outline:none}
   .flavor-tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -280,6 +283,12 @@
           <span id="radiusLabel">5 mi</span>
           <input type="range" id="radiusSlider" min="1" max="10" value="5" step="0.5" oninput="updateRadius()">
         </div>
+      </div>
+      <div class="rating-filter">
+        <span>Min rating</span>
+        <input type="range" id="ratingSlider" min="0" max="5" value="0" step="0.5" oninput="updateRatingFilter()" aria-label="Minimum rating filter">
+        <span class="rating-value" id="ratingLabel">0</span>
+        <span>&#9733;</span>
       </div>
       <div class="flavor-filters" id="flavorFilters" role="group" aria-label="Flavor filters"></div>
     </div>
@@ -1044,13 +1053,21 @@ function closeDetail(){
   if (prevCard) prevCard.focus();
 }
 
+function updateRatingFilter() {
+  const val = parseFloat(document.getElementById('ratingSlider').value);
+  document.getElementById('ratingLabel').textContent = val > 0 ? val.toFixed(1) : '0';
+  filterShops();
+}
+
 function filterShops() {
   const search=document.getElementById('searchInput').value.toLowerCase();
   const sort=document.getElementById('sortSelect').value;
+  const minRating=parseFloat(document.getElementById('ratingSlider').value)||0;
   filteredShops = allShops.filter(shop=>{
     if(search&&!shop.name.toLowerCase().includes(search)&&!(shop.address||'').toLowerCase().includes(search))return false;
     if(activeFlavorFilters.size>0){const sf=new Set(shop.flavorTags.map(f=>f.tag));for(const fl of activeFlavorFilters){if(!sf.has(fl))return false;}}
     if(shop.distance>radiusMiles)return false;
+    if(minRating>0&&shop.rating<minRating)return false;
     return true;
   });
   switch(sort){case'distance':filteredShops.sort((a,b)=>a.distance-b.distance);break;case'rating':filteredShops.sort((a,b)=>b.rating-a.rating);break;case'reviews':filteredShops.sort((a,b)=>b.reviewCount-a.reviewCount);break;case'name':filteredShops.sort((a,b)=>a.name.localeCompare(b.name));break;}
