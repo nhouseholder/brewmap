@@ -3,9 +3,14 @@
 // IMPORTANT: Must remain pure JS — no Node.js or Workers-specific APIs
 
 export const CHAINS = [
+  // National chains
   'starbucks','dunkin','peet','mcdonald','tim horton','panera','caribou',
   'subway','burger','wendy','taco','pizza','popeye','chick-fil','jack in',
-  'sonic','whataburger','ihop','denny','krispy','dairy queen'
+  'sonic','whataburger','ihop','denny','krispy','dairy queen',
+  // Regional coffee/drive-thru chains
+  'dutch bros','black rock coffee','human bean','scooter\'s coffee',
+  'biggby','seven brew','ziggi\'s','coffee bean & tea leaf',
+  'it\'s a grind','gloria jean','coffee beanery',
 ];
 
 // Coffee-forward keywords (in name) — indicates primary coffee identity
