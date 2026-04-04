@@ -94,7 +94,12 @@
   .rating-filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);padding:4px 0}
   .rating-filter input[type="range"]{flex:1;accent-color:var(--accent);min-width:100px}
   .rating-filter .rating-value{font-weight:600;color:var(--accent);min-width:28px;text-align:right}
+  .flavor-craving{margin-bottom:2px}
+  .flavor-craving-label{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+  .flavor-craving-label button{background:none;border:none;color:var(--accent);font-size:10px;cursor:pointer;font-family:inherit;padding:0}
+  .flavor-craving-label button:hover{text-decoration:underline}
   .flavor-filters{display:flex;flex-wrap:wrap;gap:5px}
+  .flavor-match-pct{font-size:11px;font-weight:600;color:var(--green);padding:2px 7px;background:rgba(93,186,125,0.12);border-radius:10px;white-space:nowrap}
   .flavor-tag{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.15s;user-select:none;-webkit-user-select:none;font-family:inherit;-webkit-appearance:none;appearance:none;outline:none}
   .flavor-tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .flavor-tag:active{transform:scale(0.95)}
@@ -281,6 +286,7 @@
           <option value="distance">Sort by Distance</option>
           <option value="rating">Sort by Rating</option>
           <option value="reviews">Sort by Reviews</option>
+          <option value="flavor">Sort by Flavor Match</option>
           <option value="name">Sort by Name</option>
         </select>
         <div class="radius-control">
@@ -294,7 +300,10 @@
         <span class="rating-value" id="ratingLabel">0</span>
         <span>&#9733;</span>
       </div>
-      <div class="flavor-filters" id="flavorFilters" role="group" aria-label="Flavor filters"></div>
+      <div class="flavor-craving">
+        <div class="flavor-craving-label"><span>What flavor are you craving?</span><button id="clearFlavorsBtn" onclick="clearFlavorSelection()" style="display:none">Clear</button></div>
+        <div class="flavor-filters" id="flavorFilters" role="group" aria-label="Flavor filters"></div>
+      </div>
     </div>
     <div class="results-info">
       <span id="resultsCount">Scanning for shops...</span>
@@ -685,22 +694,52 @@ function initMap() {
 
 function renderFlavorFilters() {
   const c = document.getElementById('flavorFilters'); c.innerHTML = '';
-  const a = document.createElement('button');
-  a.type = 'button';
-  a.className = 'flavor-tag ' + (activeFlavorFilters.size === 0 ? 'active' : '');
-  a.textContent = 'All Flavors';
-  a.setAttribute('aria-pressed', activeFlavorFilters.size === 0 ? 'true' : 'false');
-  a.onclick = () => { activeFlavorFilters.clear(); renderFlavorFilters(); filterShops(); };
-  c.appendChild(a);
-  FLAVOR_TAGS.forEach(tag => {
+  // Show popular flavors first, rest after
+  const popular = ['bold','dark','smooth','chocolatey','fruity','bright','nutty','caramel','rich','sweet','balanced','earthy'];
+  const rest = FLAVOR_TAGS.filter(t => !popular.includes(t));
+  const ordered = [...popular, ...rest];
+  ordered.forEach(tag => {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'flavor-tag ' + (activeFlavorFilters.has(tag) ? 'active' : '');
     el.textContent = tag;
     el.setAttribute('aria-pressed', activeFlavorFilters.has(tag) ? 'true' : 'false');
-    el.onclick = () => { if (activeFlavorFilters.has(tag)) activeFlavorFilters.delete(tag); else activeFlavorFilters.add(tag); renderFlavorFilters(); filterShops(); };
+    el.onclick = () => {
+      if (activeFlavorFilters.has(tag)) activeFlavorFilters.delete(tag);
+      else activeFlavorFilters.add(tag);
+      // Auto-switch to flavor match sort when flavors selected
+      if (activeFlavorFilters.size > 0) document.getElementById('sortSelect').value = 'flavor';
+      else if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
+      renderFlavorFilters(); filterShops();
+    };
     c.appendChild(el);
   });
+  // Show/hide clear button
+  document.getElementById('clearFlavorsBtn').style.display = activeFlavorFilters.size > 0 ? 'inline' : 'none';
+}
+
+function clearFlavorSelection() {
+  activeFlavorFilters.clear();
+  if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
+  renderFlavorFilters(); filterShops();
+}
+
+function flavorMatchScore(shop) {
+  if (activeFlavorFilters.size === 0) return 0;
+  const fp = shop.flavorProfile;
+  if (!fp) return 0;
+  // Cosine similarity between selected flavors and shop profile
+  let dotProduct = 0, magA = 0, magB = 0;
+  for (const tag of activeFlavorFilters) {
+    const shopVal = fp[tag] || 0;
+    dotProduct += 100 * shopVal; // user "wants" 100 for each selected tag
+    magA += 100 * 100;
+  }
+  for (const val of Object.values(fp)) magB += val * val;
+  magA = Math.sqrt(magA);
+  magB = Math.sqrt(magB);
+  if (magA === 0 || magB === 0) return 0;
+  return Math.round((dotProduct / (magA * magB)) * 100);
 }
 
 // =========== FIND NEAR ME (Location Service) ===========
@@ -997,7 +1036,7 @@ function renderShopList() {
   if (filteredShops.length === 0) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9749;</div><div class="empty-title">No shops match your filters</div><div class="empty-subtitle">Try adjusting your flavor filters or search radius</div></div>'; return; }
   c.innerHTML = filteredShops.map(shop =>
     '<div class="shop-card '+(selectedShopId===shop.id?'active':'')+'" onclick="selectShop('+shop.id+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectShop('+shop.id+');}" id="card-'+shop.id+'" tabindex="0" role="button" aria-label="'+escHtml(shop.name)+', rated '+shop.rating+' stars">'+
-    '<div class="shop-card-header"><div class="shop-name">'+escHtml(shop.name)+'</div><div class="shop-distance">'+formatDistance(shop.distance)+'</div></div>'+
+    '<div class="shop-card-header"><div class="shop-name">'+escHtml(shop.name)+'</div><div style="display:flex;align-items:center;gap:5px">'+(activeFlavorFilters.size>0&&shop._matchPct>0?'<span class="flavor-match-pct">'+shop._matchPct+'%</span>':'')+'<div class="shop-distance">'+formatDistance(shop.distance)+'</div></div></div>'+
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
     (shop.beanOrigins||shop.roastLevel?'<div class="shop-bean-info">'+(shop.beanOrigins?'<span class="bean-origin">&#127758; '+escHtml(shop.beanOrigins.join(', '))+'</span>':'')+(shop.roastLevel?'<span class="bean-roast">'+escHtml(shop.roastLevel)+' roast</span>':'')+(shop.beanType?'<span class="bean-type">'+escHtml(shop.beanType)+'</span>':'')+'</div>':'')+
@@ -1095,7 +1134,9 @@ function filterShops() {
     if(minRating>0&&shop.rating<minRating)return false;
     return true;
   });
-  switch(sort){case'distance':filteredShops.sort((a,b)=>a.distance-b.distance);break;case'rating':filteredShops.sort((a,b)=>b.rating-a.rating);break;case'reviews':filteredShops.sort((a,b)=>b.reviewCount-a.reviewCount);break;case'name':filteredShops.sort((a,b)=>a.name.localeCompare(b.name));break;}
+  // Compute flavor match scores
+  filteredShops.forEach(s => { s._matchPct = flavorMatchScore(s); });
+  switch(sort){case'distance':filteredShops.sort((a,b)=>a.distance-b.distance);break;case'rating':filteredShops.sort((a,b)=>b.rating-a.rating);break;case'reviews':filteredShops.sort((a,b)=>b.reviewCount-a.reviewCount);break;case'flavor':filteredShops.sort((a,b)=>b._matchPct-a._matchPct||a.distance-b.distance);break;case'name':filteredShops.sort((a,b)=>a.name.localeCompare(b.name));break;}
   const countText = filteredShops.length+' of '+allShops.length+' shops';
   document.getElementById('resultsCount').textContent=countText;
   const a11y = document.getElementById('a11yStatus');
