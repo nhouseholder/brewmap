@@ -126,9 +126,10 @@ export function matchShops(yelpBusinesses, overpassShops) {
 
 /**
  * Merge Yelp data into an existing shop object.
+ * If reviews are available, extracts real flavor profile from review text.
  */
-export function mergeYelpData(shop, yelpBiz, yelpReviews = []) {
-  return {
+export function mergeYelpData(shop, yelpBiz, yelpReviews = [], extractFlavors = null) {
+  const merged = {
     ...shop,
     rating: yelpBiz.rating,
     reviewCount: yelpBiz.review_count,
@@ -139,8 +140,22 @@ export function mergeYelpData(shop, yelpBiz, yelpReviews = []) {
     yelpReviewCount: yelpBiz.review_count,
     yelpReviews: yelpReviews.length > 0 ? yelpReviews : undefined,
     yelpEnrichedAt: new Date().toISOString(),
-    // Keep existing flavor data (AI-estimated) — Yelp doesn't provide flavor profiles
   };
+
+  // Extract real flavor profile from review text if extractor provided
+  if (extractFlavors && yelpReviews.length > 0) {
+    const reviewTexts = yelpReviews.map(r => r.text);
+    const extracted = extractFlavors(reviewTexts, shop.flavorProfile);
+    if (extracted) {
+      merged.flavorProfile = extracted.flavorProfile;
+      merged.flavorTags = extracted.flavorTags;
+      if (extracted.dataSource === 'yelp-reviews') {
+        merged.flavorSource = 'yelp-reviews';
+      }
+    }
+  }
+
+  return merged;
 }
 
 // =========== UTILITIES ===========
