@@ -36,8 +36,8 @@ async function kvGet(key) {
 
 async function main() {
   if (!YELP_API_KEY) {
-    console.error('❌ Missing YELP_API_KEY environment variable');
-    process.exit(1);
+    console.log('⏭️  No YELP_API_KEY set — skipping Yelp enrichment');
+    return;
   }
 
   console.log('☕ BrewMap Yelp Enrichment');
