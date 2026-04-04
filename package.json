@@ -1,13 +1,15 @@
 {
   "name": "brewmap",
-  "version": "5.2.0",
+  "version": "5.4.0",
   "description": "Coffee shop discovery app with real Yelp reviews + flavor profiles — powered by OpenStreetMap + Yelp + Cloudflare KV",
   "type": "module",
   "scripts": {
     "harvest": "node scripts/harvest-coffee-shops.mjs",
     "harvest:dry": "DRY_RUN=1 node scripts/harvest-coffee-shops.mjs",
     "enrich": "node scripts/enrich-with-yelp.mjs",
-    "enrich:dry": "DRY_RUN=1 node scripts/enrich-with-yelp.mjs"
+    "enrich:dry": "DRY_RUN=1 node scripts/enrich-with-yelp.mjs",
+    "enrich:web": "node scripts/enrich-from-websites.mjs",
+    "enrich:web:dry": "DRY_RUN=1 node scripts/enrich-from-websites.mjs"
   },
   "repository": {
     "type": "git",

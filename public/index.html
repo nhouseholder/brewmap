@@ -123,6 +123,10 @@
   .shop-flavor-tag{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500}
   .ft-dark{background:rgba(139,90,43,0.25);color:#d4a060}.ft-bold{background:rgba(180,80,60,0.25);color:#e89080}.ft-rich{background:rgba(160,80,80,0.25);color:#d89090}.ft-toasty{background:rgba(200,140,60,0.2);color:#dbb070}.ft-nutty{background:rgba(180,140,80,0.2);color:#c8b080}.ft-chocolatey{background:rgba(120,70,50,0.3);color:#c09070}.ft-smoky{background:rgba(100,100,110,0.3);color:#b0b0b8}.ft-medium{background:rgba(100,160,100,0.2);color:#90c890}.ft-balanced{background:rgba(93,157,232,0.2);color:#90b8e0}.ft-smooth{background:rgba(100,180,160,0.2);color:#88ccbb}.ft-fruity{background:rgba(232,93,168,0.2);color:#e890c0}.ft-bright{background:rgba(232,180,93,0.2);color:#e8c070}.ft-tart{background:rgba(232,93,93,0.2);color:#e89090}.ft-citrus{background:rgba(232,200,93,0.2);color:#e8d070}.ft-berry{background:rgba(168,93,232,0.2);color:#c0a0e8}.ft-floral{background:rgba(200,130,220,0.2);color:#d0a8e0}.ft-sweet{background:rgba(232,147,93,0.2);color:#e8b080}.ft-caramel{background:rgba(210,160,80,0.2);color:#d8b870}.ft-vanilla{background:rgba(230,220,180,0.2);color:#d8d0a8}.ft-earthy{background:rgba(120,130,80,0.2);color:#a8b078}.ft-spicy{background:rgba(200,80,60,0.2);color:#d88870}.ft-herbal{background:rgba(80,160,80,0.2);color:#80c080}.ft-clean{background:rgba(140,200,220,0.2);color:#a0d0e0}.ft-mild{background:rgba(180,180,180,0.15);color:#b0b0b0}.ft-complex{background:rgba(168,125,232,0.2);color:#b8a0e0}.ft-acidic{background:rgba(200,220,60,0.2);color:#c0d060}
   .flavor-confidence{font-size:9px;opacity:0.7;margin-left:2px}
+  .shop-bean-info{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;font-size:10px}
+  .bean-origin,.bean-roast,.bean-type{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:6px;background:rgba(93,186,125,0.12);color:#5dba7d}
+  .bean-roast{background:rgba(232,180,93,0.12);color:#e8b45d}
+  .bean-type{background:rgba(93,141,232,0.12);color:#5d8de8}
   .ai-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--purple);background:rgba(168,125,232,0.12);padding:2px 6px;border-radius:8px;margin-top:5px}
   .map-container{flex:1;position:relative}
   #map{height:100%;width:100%}
@@ -306,7 +310,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v5.2 — Local Coffee Discovery</span>
+      <span>BrewMap v5.4 — Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
@@ -996,9 +1000,19 @@ function renderShopList() {
     '<div class="shop-card-header"><div class="shop-name">'+escHtml(shop.name)+'</div><div class="shop-distance">'+formatDistance(shop.distance)+'</div></div>'+
     '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
     (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
+    (shop.beanOrigins||shop.roastLevel?'<div class="shop-bean-info">'+(shop.beanOrigins?'<span class="bean-origin">&#127758; '+escHtml(shop.beanOrigins.join(', '))+'</span>':'')+(shop.roastLevel?'<span class="bean-roast">'+escHtml(shop.roastLevel)+' roast</span>':'')+(shop.beanType?'<span class="bean-type">'+escHtml(shop.beanType)+'</span>':'')+'</div>':'')+
     '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge">'+(shop.flavorSource==='yelp-reviews'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Flavor profile from real Yelp reviews':shop.dataSource==='yelp'?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Yelp verified ratings':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>AI-estimated flavor profile (not real reviews)')+'</div></div>'
+    '<div class="ai-badge">'+flavorBadge(shop)+'</div></div>'
   ).join('');
+}
+
+function flavorBadge(shop) {
+  const check = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
+  const info = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>';
+  if (shop.flavorSource === 'website') return check + 'Verified from shop website';
+  if (shop.flavorSource === 'yelp-reviews') return check + 'Flavor from Yelp reviews';
+  if (shop.dataSource === 'yelp') return check + 'Yelp verified ratings';
+  return info + 'AI-estimated flavor profile (not real reviews)';
 }
 
 function renderStars(rating) { let h=''; for(let i=1;i<=5;i++) h+='<span class="star '+(i<=Math.round(rating)?'':'empty')+'">&#9733;</span>'; return h; }
@@ -1031,6 +1045,17 @@ function selectShop(id) {
   if (shop.hours) detailExtras += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">&#128336; '+escHtml(shop.hours)+'</div>';
   if (shop.website) detailExtras += '<div style="font-size:12px;margin-bottom:4px;"><a href="'+escHtml(shop.website)+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">&#127760; Website</a></div>';
   if (shop.phone) detailExtras += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">&#128222; '+escHtml(shop.phone)+'</div>';
+  // Bean sourcing info
+  if (shop.beanOrigins || shop.roastLevel || shop.beanType) {
+    detailExtras += '<div style="margin-top:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;font-size:12px;">';
+    detailExtras += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:4px;">Bean Info</div>';
+    if (shop.beanOrigins) detailExtras += '<div style="margin-bottom:3px;">&#127758; Origin: <strong style="color:var(--text);">'+escHtml(shop.beanOrigins.join(', '))+'</strong>'+(shop.beanRegions?' ('+escHtml(shop.beanRegions.join(', '))+')':'')+'</div>';
+    if (shop.roastLevel) detailExtras += '<div style="margin-bottom:3px;">&#128293; Roast: <strong style="color:var(--text);">'+escHtml(shop.roastLevel)+'</strong></div>';
+    if (shop.beanType) detailExtras += '<div style="margin-bottom:3px;">&#9749; Type: <strong style="color:var(--text);">'+escHtml(shop.beanType)+'</strong></div>';
+    if (shop.processMethod) detailExtras += '<div style="margin-bottom:3px;">&#9881; Process: <strong style="color:var(--text);">'+escHtml(shop.processMethod)+'</strong></div>';
+    if (shop.websiteTastingNotes) detailExtras += '<div style="margin-top:4px;font-style:italic;color:var(--text2);">"'+escHtml(shop.websiteTastingNotes)+'"</div>';
+    detailExtras += '</div>';
+  }
   const extrasEl = document.getElementById('detailExtras');
   if (extrasEl) { extrasEl.innerHTML = detailExtras; extrasEl.style.display = detailExtras ? 'block' : 'none'; }
   document.getElementById('detailRating').textContent=shop.rating;
