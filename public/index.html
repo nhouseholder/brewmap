@@ -140,7 +140,7 @@
   .bean-origin,.bean-roast,.bean-type{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:6px;background:rgba(93,186,125,0.12);color:#5dba7d}
   .bean-roast{background:rgba(232,180,93,0.12);color:#e8b45d}
   .bean-type{background:rgba(93,141,232,0.12);color:#5d8de8}
-  .ai-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--purple);background:rgba(168,125,232,0.12);padding:2px 6px;border-radius:8px;margin-top:5px}
+  .ai-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:8px;margin-top:5px}
   .map-container{flex:1;position:relative}
   #map{height:100%;width:100%}
   .leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border-radius:var(--radius)!important;box-shadow:var(--shadow)!important;border:1px solid var(--border)!important}
@@ -205,6 +205,36 @@
   .refresh-btn:active{border-color:var(--accent);color:var(--accent)}
   .status-bar{padding:6px 12px;padding-bottom:calc(6px + var(--safe-bottom));background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;justify-content:space-between;align-items:center}
   .data-source-badge{display:none;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+  .verified-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+  .verified-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
+  .verified-toggle.active{border-color:rgba(93,186,125,0.45);background:rgba(93,186,125,0.12);color:#5dba7d}
+  .verified-toggle-dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:0.85}
+  .verified-toggle-caption{font-size:10px;color:var(--text3);text-align:right;max-width:150px}
+  .quick-intents-wrap{margin-top:10px}
+  .quick-intents{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .intent-chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
+  .intent-chip.active{border-color:rgba(93,141,232,0.45);background:rgba(93,141,232,0.14);color:#9dbfff}
+  .intent-chip:active{transform:scale(0.97)}
+  .featured-rails{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg, rgba(93,141,232,0.05), transparent)}
+  .featured-rails:empty{display:none}
+  .featured-section{display:flex;flex-direction:column;gap:6px}
+  .featured-section-header{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .featured-section-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)}
+  .featured-section-subtitle{font-size:10px;color:var(--text3);text-align:right}
+  .featured-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .featured-cards::-webkit-scrollbar{display:none}
+  .featured-card{min-width:150px;padding:10px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,var(--surface),rgba(28,28,28,0.94));cursor:pointer;transition:all 0.15s}
+  .featured-card:hover{border-color:rgba(212,160,83,0.35);transform:translateY(-1px)}
+  .featured-card-name{font-size:12px;font-weight:700;line-height:1.2;margin-bottom:4px}
+  .featured-card-meta{font-size:10px;color:var(--text3);margin-bottom:6px}
+  .featured-card-tags{display:flex;flex-wrap:wrap;gap:4px}
+  .featured-card-tags .shop-flavor-tag{font-size:9px;padding:2px 6px}
+  .shop-card-trust{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .source-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 6px;border-radius:999px;font-weight:700;letter-spacing:0.02em}
+  .source-badge.website{background:rgba(93,186,125,0.14);color:#7dd09a}
+  .source-badge.reviews{background:rgba(93,141,232,0.14);color:#a5c0ff}
+  .source-badge.yelp{background:rgba(232,180,93,0.14);color:#f0c477}
+  .source-badge.estimated{background:rgba(168,125,232,0.12);color:#c5a9f0}
   /* Using CartoDB dark tiles instead of CSS filter inversion */
   .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
   .leaflet-control-attribution{font-size:9px!important;background:rgba(15,15,15,0.7)!important;color:var(--text3)!important}
@@ -247,6 +277,10 @@
     .map-locate-btn{bottom:55%;right:10px}
     .stats-row{display:none}
     .status-bar{display:none}
+    .verified-toggle-row{align-items:flex-start;flex-direction:column}
+    .verified-toggle-caption{max-width:none;text-align:left}
+    .featured-rails{padding:10px}
+    .featured-card{min-width:140px}
   }
 
   @media (max-width: 380px) {
@@ -299,10 +333,11 @@
     <div class="controls">
       <div class="search-bar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchInput" placeholder="Search coffee shops..." oninput="filterShops()" role="searchbox" aria-label="Search coffee shops by name or address">
+        <input type="text" id="searchInput" placeholder="Search coffee shops..." oninput="handleManualFilterChange()" role="searchbox" aria-label="Search coffee shops by name or address">
       </div>
       <div class="filter-row">
-        <select class="sort-select" id="sortSelect" onchange="filterShops()">
+        <select class="sort-select" id="sortSelect" onchange="handleManualFilterChange()">
+          <option value="verified">Sort by Best Verified</option>
           <option value="distance">Sort by Distance</option>
           <option value="rating">Sort by Rating</option>
           <option value="reviews">Sort by Reviews</option>
@@ -327,9 +362,20 @@
           <button class="roast-pill" onclick="setRoastFilter('medium')" data-roast="medium"><span class="roast-dot medium"></span>Medium</button>
           <button class="roast-pill" onclick="setRoastFilter('dark')" data-roast="dark"><span class="roast-dot dark"></span>Dark</button>
         </div>
-        <select class="origin-select" id="originSelect" onchange="filterShops()">
+        <select class="origin-select" id="originSelect" onchange="handleManualFilterChange()">
           <option value="">All Origins</option>
         </select>
+      </div>
+      <div class="verified-toggle-row">
+        <button class="verified-toggle" id="verifiedOnlyBtn" onclick="toggleVerifiedOnly()" aria-pressed="false">
+          <span class="verified-toggle-dot"></span>
+          Verified only
+        </button>
+        <span class="verified-toggle-caption" id="verifiedOnlyCaption">Review-backed and website-backed shops only</span>
+      </div>
+      <div class="quick-intents-wrap">
+        <div class="flavor-craving-label"><span>Quick ways in</span></div>
+        <div class="quick-intents" id="quickIntents" role="group" aria-label="Quick discovery intents"></div>
       </div>
       <div class="flavor-craving">
         <div class="flavor-craving-label"><span>What flavor are you craving?</span><button id="clearFlavorsBtn" onclick="clearFlavorSelection()" style="display:none">Clear</button></div>
@@ -344,14 +390,15 @@
         Rescan
       </button>
     </div>
+    <div class="featured-rails" id="featuredRails"></div>
     <div class="shop-list" id="shopList">
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v6.0.1 — Local Coffee Discovery</span>
-      <span>Locations: OpenStreetMap · Flavors: Estimated</span>
+      <span>BrewMap v6.1.0 — Local Coffee Discovery</span>
+      <span>Locations: OpenStreetMap · Flavors: Mixed real + estimated</span>
     </div>
   </div>
   <div class="map-container">
@@ -408,11 +455,13 @@
   </div>
 </div>
 
+<script src="/brewmap-logic.js"></script>
 <script>
 // =========== CONFIG ===========
 const FLAVOR_TAGS = ['dark','bold','rich','toasty','nutty','chocolatey','smoky','medium','balanced','smooth','clean','mild','fruity','bright','tart','citrus','berry','floral','sweet','caramel','vanilla','earthy','spicy','herbal','complex','acidic'];
 
 const FLAVOR_BAR_COLORS = {dark:'#8B5A2B',bold:'#B4503C',rich:'#A05050',toasty:'#C88C3C',nutty:'#B48C50',chocolatey:'#785032',smoky:'#64646E',medium:'#64A064',balanced:'#5D9DE8',smooth:'#64B4A0',clean:'#8CC8DC',mild:'#B4B4B4',fruity:'#E85DA8',bright:'#E8B45D',tart:'#E85D5D',citrus:'#E8C85D',berry:'#A85DE8',floral:'#C882DC',sweet:'#E8935D',caramel:'#D2A050',vanilla:'#E6DCB4',earthy:'#788250',spicy:'#C8503C',herbal:'#50A050',complex:'#A87DE8',acidic:'#C8DC3C'};
+const BrewMapLogic = window.BrewMapLogic;
 
 const CITIES = {
   nyc: { name: 'New York, NY', lat: 40.7128, lng: -74.0060, zoom: 12, defaultRadius: 5 },
@@ -430,6 +479,11 @@ let hasUsedLocation = false;
 let currentScanController = null;
 let cachedCities = null; // Loaded from /api/cities on init
 let dataSource = 'overpass'; // 'cached' or 'overpass' — tracks current data source
+let currentDataUpdatedAt = null;
+let currentDataSourceMode = 'overpass';
+let verifiedOnly = false;
+let activeIntentId = '';
+let scanRequestToken = 0;
 
 // =========== CACHE API ===========
 async function loadCachedCities() {
@@ -475,6 +529,8 @@ function slugify(name) {
 
 function updateDataSourceBadge(source, updatedAt) {
   dataSource = source;
+  currentDataSourceMode = source;
+  currentDataUpdatedAt = updatedAt || null;
   const el = document.getElementById('dataSourceBadge');
   if (!el) return;
   if (source === 'cached') {
@@ -500,6 +556,8 @@ function updateDataSourceBadge(source, updatedAt) {
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   renderFlavorFilters();
+  renderQuickIntents();
+  updateVerifiedOnlyUI();
   loadCachedCities(); // Fire and forget — results used when available
   if (navigator.geolocation) {
     document.getElementById('findNearMeBtn').style.display = 'flex';
@@ -738,12 +796,13 @@ function renderFlavorFilters() {
     el.textContent = tag;
     el.setAttribute('aria-pressed', activeFlavorFilters.has(tag) ? 'true' : 'false');
     el.onclick = () => {
+      clearActiveIntent();
       if (activeFlavorFilters.has(tag)) activeFlavorFilters.delete(tag);
       else activeFlavorFilters.add(tag);
       // Auto-switch to flavor match sort when flavors selected
       if (activeFlavorFilters.size > 0) document.getElementById('sortSelect').value = 'flavor';
       else if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
-      renderFlavorFilters(); filterShops();
+      renderFlavorFilters(); renderQuickIntents(); filterShops();
     };
     c.appendChild(el);
   });
@@ -751,10 +810,122 @@ function renderFlavorFilters() {
   document.getElementById('clearFlavorsBtn').style.display = activeFlavorFilters.size > 0 ? 'inline' : 'none';
 }
 
+function getSafeFlavorTags(shop, limit = 5) {
+  return BrewMapLogic.sanitizeFlavorTags(shop.flavorTags, FLAVOR_TAGS, shop.flavorProfile, limit);
+}
+
+function hydrateShop(shop) {
+  const flavorTags = getSafeFlavorTags(shop);
+  const sourceMeta = BrewMapLogic.getShopSourceMeta(shop);
+  return { ...shop, flavorTags, _sourceMeta: sourceMeta };
+}
+
+function clearActiveIntent() {
+  if (!activeIntentId) return;
+  activeIntentId = '';
+}
+
+function updateVerifiedOnlyUI() {
+  const button = document.getElementById('verifiedOnlyBtn');
+  const caption = document.getElementById('verifiedOnlyCaption');
+  if (!button || !caption) return;
+  button.classList.toggle('active', verifiedOnly);
+  button.setAttribute('aria-pressed', verifiedOnly ? 'true' : 'false');
+  caption.textContent = verifiedOnly
+    ? 'Only shops with Yelp or website evidence'
+    : 'Includes estimated shops when evidence is missing';
+}
+
+function toggleVerifiedOnly() {
+  clearActiveIntent();
+  verifiedOnly = !verifiedOnly;
+  updateVerifiedOnlyUI();
+  renderQuickIntents();
+  filterShops();
+}
+
+function handleManualFilterChange() {
+  clearActiveIntent();
+  renderQuickIntents();
+  filterShops();
+}
+
+function renderQuickIntents() {
+  const container = document.getElementById('quickIntents');
+  if (!container) return;
+  container.innerHTML = '';
+  BrewMapLogic.getQuickIntents().forEach(intent => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'intent-chip' + (activeIntentId === intent.id ? ' active' : '');
+    button.textContent = intent.label;
+    button.onclick = () => applyIntent(intent.id);
+    container.appendChild(button);
+  });
+}
+
+function applyIntent(intentId) {
+  const intent = BrewMapLogic.getQuickIntents().find(item => item.id === intentId);
+  if (!intent) return;
+  activeIntentId = intentId;
+  verifiedOnly = intent.verifiedOnly;
+  activeFlavorFilters = new Set(intent.flavors);
+  activeRoastFilter = intent.roast;
+  document.getElementById('searchInput').value = intent.search;
+  document.getElementById('sortSelect').value = intent.sort;
+  document.getElementById('ratingSlider').value = 0;
+  document.getElementById('ratingLabel').textContent = '0';
+  document.getElementById('originSelect').value = '';
+  document.querySelectorAll('.roast-pill').forEach(p => p.classList.toggle('active', p.dataset.roast === intent.roast));
+  updateVerifiedOnlyUI();
+  renderFlavorFilters();
+  renderQuickIntents();
+  filterShops();
+}
+
+function sourceBadgeHtml(shop) {
+  const meta = shop._sourceMeta || BrewMapLogic.getShopSourceMeta(shop);
+  return '<span class="source-badge ' + meta.tone + '">' + escHtml(meta.label) + '</span>';
+}
+
+function renderFeaturedRails() {
+  const container = document.getElementById('featuredRails');
+  if (!container) return;
+  const sections = BrewMapLogic.buildFeaturedSections(filteredShops, {
+    updatedAt: currentDataUpdatedAt,
+    source: currentDataSourceMode,
+    activeFlavorTags: Array.from(activeFlavorFilters),
+  });
+  if (sections.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = sections.map(section =>
+    '<div class="featured-section">' +
+      '<div class="featured-section-header">' +
+        '<div class="featured-section-title">' + escHtml(section.title) + '</div>' +
+        '<div class="featured-section-subtitle">' + escHtml(section.subtitle) + '</div>' +
+      '</div>' +
+      '<div class="featured-cards">' + section.shops.map(shop => {
+        const tags = getSafeFlavorTags(shop, 3);
+        return '<button type="button" class="featured-card" onclick="selectShop(' + shop.id + ')">' +
+          '<div class="featured-card-name">' + escHtml(shop.name) + '</div>' +
+          '<div class="featured-card-meta">' + formatDistance(shop.distance) + ' · ' + shop.rating + ' stars · ' + shop.reviewCount + ' reviews</div>' +
+          sourceBadgeHtml(shop) +
+          '<div class="featured-card-tags">' + tags.map(f => '<span class="shop-flavor-tag ft-' + f.tag + '">' + f.tag + '</span>').join('') + '</div>' +
+        '</button>';
+      }).join('') + '</div>' +
+    '</div>'
+  ).join('');
+}
+
 let activeRoastFilter = '';
-function setRoastFilter(level) {
+function setRoastFilter(level, preserveIntent = false) {
+  if (!preserveIntent) clearActiveIntent();
   activeRoastFilter = level;
   document.querySelectorAll('.roast-pill').forEach(p => p.classList.toggle('active', p.dataset.roast === level));
+  renderQuickIntents();
   filterShops();
 }
 
@@ -773,9 +944,10 @@ function populateOriginFilter() {
 }
 
 function clearFlavorSelection() {
+  clearActiveIntent();
   activeFlavorFilters.clear();
   if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
-  renderFlavorFilters(); filterShops();
+  renderFlavorFilters(); renderQuickIntents(); filterShops();
 }
 
 function flavorMatchScore(shop) {
@@ -934,6 +1106,7 @@ async function scanArea() {
   if (currentScanController) { currentScanController.abort(); }
   currentScanController = new AbortController();
   const scanAbort = currentScanController.signal;
+  const scanToken = ++scanRequestToken;
   const scanBtn = document.getElementById('scanBtn');
   scanBtn.disabled = true;
   lastScanRadius = radiusMiles;
@@ -945,6 +1118,10 @@ async function scanArea() {
     if (nearestCity) {
       updateLoading('Loading coffee shops...', 'Using cached data for ' + nearestCity.name);
       const cached = await loadFromCache(nearestCity.slug);
+      if (scanAbort.aborted || scanToken !== scanRequestToken) {
+        scanBtn.disabled = false;
+        return;
+      }
       if (cached?.shops?.length) {
         const shops = cached.shops.map(s => ({
           ...s,
@@ -952,7 +1129,7 @@ async function scanArea() {
           reviews: s.yelpReviews && s.yelpReviews.length > 0
             ? s.yelpReviews.map(r => ({ text: r.text, source: 'Yelp', rating: r.rating, user: r.user, flavorsFound: [] }))
             : generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
-        })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
+        })).map(hydrateShop).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
         if (shops.length === 0) {
           // No cached shops within radius — fall through to Overpass
@@ -960,11 +1137,10 @@ async function scanArea() {
         } else {
           allShops = shops; filteredShops = [...shops];
           populateOriginFilter();
-          renderShopList(); renderMapMarkers();
+          updateDataSourceBadge('cached', cached.updatedAt);
+          filterShops();
           document.getElementById('loadingOverlay').classList.add('hidden');
           document.getElementById('refreshBtn').style.display = 'flex';
-          document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
-          updateDataSourceBadge('cached', cached.updatedAt);
           updateStats();
           updateHash();
           scanBtn.disabled = false;
@@ -983,6 +1159,10 @@ async function scanArea() {
       signal: scanAbort,
     });
     const discoverData = await discoverRes.json();
+    if (scanAbort.aborted || scanToken !== scanRequestToken) {
+      scanBtn.disabled = false;
+      return;
+    }
     if (!discoverRes.ok || !discoverData.available) {
       throw new Error(discoverData.error || 'Could not discover coffee shops in this area.');
     }
@@ -993,7 +1173,7 @@ async function scanArea() {
       reviews: s.yelpReviews && s.yelpReviews.length > 0
         ? s.yelpReviews.map(r => ({ text: r.text, source: 'Yelp', rating: r.rating, user: r.user, flavorsFound: [] }))
         : generateReviews(s.name, s.flavorProfile, mulberry32(hashCode(s.name)), s.reviewCount),
-    })).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
+    })).map(hydrateShop).filter(s => s.distance <= radiusMiles).sort((a, b) => a.distance - b.distance);
 
     // Update cached cities in memory so this city appears in dropdown
     if (discoverData.source === 'discovered' && cachedCities) {
@@ -1006,11 +1186,10 @@ async function scanArea() {
 
     allShops = shops; filteredShops = [...shops];
     populateOriginFilter();
-    renderShopList(); renderMapMarkers();
-    document.getElementById('loadingOverlay').classList.add('hidden');
-    document.getElementById('refreshBtn').style.display = 'flex';
-    document.getElementById('resultsCount').textContent = shops.length + ' coffee shops found';
     updateDataSourceBadge(discoverData.source === 'cached' ? 'cached' : 'discovered', discoverData.updatedAt);
+  filterShops();
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById('refreshBtn').style.display = 'flex';
     updateStats();
     updateHash();
   } catch(err) {
@@ -1019,9 +1198,12 @@ async function scanArea() {
       scanBtn.disabled = false;
       return;
     }
+    if (scanToken !== scanRequestToken) {
+      scanBtn.disabled = false;
+      return;
+    }
     console.error('Scan error:', err);
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.innerHTML = '<div style="text-align:center;padding:24px;"><div style="font-size:40px;margin-bottom:12px;">&#9888;</div><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">Could not load coffee shops</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px;">The map database may be temporarily unavailable.</div><button onclick="document.getElementById(\'loadingOverlay\').innerHTML=\'<div class=spinner></div><div class=loading-text id=loadingText>Retrying...</div><div class=loading-step id=loadingStep></div>\';scanArea()" style="background:linear-gradient(135deg,var(--accent),#b8863a);color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Retry</button><button onclick="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\')" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;margin-left:8px;">Dismiss</button></div>';
+    showScanError('The map database may be temporarily unavailable.');
   }
   scanBtn.disabled = false;
 }
@@ -1090,15 +1272,16 @@ function generateReviews(shopName, fp, rng, total) {
 function renderShopList() {
   const c = document.getElementById('shopList');
   if (filteredShops.length === 0) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9749;</div><div class="empty-title">No shops match your filters</div><div class="empty-subtitle">Try adjusting your flavor filters or search radius</div></div>'; return; }
-  c.innerHTML = filteredShops.map(shop =>
-    '<div class="shop-card '+(selectedShopId===shop.id?'active':'')+'" onclick="selectShop('+shop.id+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectShop('+shop.id+');}" id="card-'+shop.id+'" tabindex="0" role="button" aria-label="'+escHtml(shop.name)+', rated '+shop.rating+' stars">'+
-    '<div class="shop-card-header"><div class="shop-name">'+escHtml(shop.name)+'</div><div style="display:flex;align-items:center;gap:5px">'+(activeFlavorFilters.size>0&&shop._matchPct>0?'<span class="flavor-match-pct">'+shop._matchPct+'%</span>':'')+'<div class="shop-distance">'+formatDistance(shop.distance)+'</div></div></div>'+
-    '<div class="shop-meta"><div class="shop-rating"><div class="stars">'+renderStars(shop.rating)+'</div><span>'+shop.rating+'</span><span class="review-count">('+shop.reviewCount+')</span></div></div>'+
-    (shop.address?'<div class="shop-address">'+escHtml(shop.address)+'</div>':'')+
-    (shop.beanOrigins||shop.roastLevel?'<div class="shop-bean-info">'+(shop.beanOrigins?'<span class="bean-origin">&#127758; '+escHtml(shop.beanOrigins.join(', '))+'</span>':'')+(shop.roastLevel?'<span class="bean-roast">'+escHtml(shop.roastLevel)+' roast</span>':'')+(shop.beanType?'<span class="bean-type">'+escHtml(shop.beanType)+'</span>':'')+'</div>':'')+
-    '<div class="shop-flavors">'+shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>'+
-    '<div class="ai-badge">'+flavorBadge(shop)+'</div></div>'
-  ).join('');
+  c.innerHTML = filteredShops.map(shop => {
+    const safeTags = getSafeFlavorTags(shop);
+    return '<div class="shop-card ' + (selectedShopId === shop.id ? 'active' : '') + '" onclick="selectShop(' + shop.id + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectShop(' + shop.id + ');}" id="card-' + shop.id + '" tabindex="0" role="button" aria-label="' + escHtml(shop.name) + ', rated ' + shop.rating + ' stars">' +
+      '<div class="shop-card-header"><div class="shop-name">' + escHtml(shop.name) + '</div><div style="display:flex;align-items:center;gap:5px">' + (activeFlavorFilters.size > 0 && shop._matchPct > 0 ? '<span class="flavor-match-pct">' + shop._matchPct + '%</span>' : '') + '<div class="shop-distance">' + formatDistance(shop.distance) + '</div></div></div>' +
+      '<div class="shop-meta"><div class="shop-rating"><div class="stars">' + renderStars(shop.rating) + '</div><span>' + shop.rating + '</span><span class="review-count">(' + shop.reviewCount + ')</span></div></div>' +
+      (shop.address ? '<div class="shop-address">' + escHtml(shop.address) + '</div>' : '') +
+      (shop.beanOrigins || shop.roastLevel ? '<div class="shop-bean-info">' + (shop.beanOrigins ? '<span class="bean-origin">&#127758; ' + escHtml(shop.beanOrigins.join(', ')) + '</span>' : '') + (shop.roastLevel ? '<span class="bean-roast">' + escHtml(shop.roastLevel) + ' roast</span>' : '') + (shop.beanType ? '<span class="bean-type">' + escHtml(shop.beanType) + '</span>' : '') + '</div>' : '') +
+      '<div class="shop-flavors">' + safeTags.map(f => '<span class="shop-flavor-tag ft-' + f.tag + '">' + f.tag + '</span>').join('') + '</div>' +
+      '<div class="shop-card-trust">' + sourceBadgeHtml(shop) + '<span class="ai-badge">' + flavorBadge(shop) + '</span></div></div>';
+  }).join('');
 }
 
 function shopSimilarity(a, b) {
@@ -1137,18 +1320,11 @@ function renderSimilarShops(shop) {
 }
 
 function flavorBadge(shop) {
-  const check = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
-  const info = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>';
-  // Count data sources
-  const sources = [];
-  if (shop.flavorSource === 'website' || shop.beanOrigins) sources.push('website');
-  if (shop.dataSource === 'yelp' || shop.flavorSource === 'yelp-reviews') sources.push('yelp');
-  if (sources.length === 0) sources.push('ai');
-  const count = sources.length;
-  if (shop.flavorSource === 'website') return '<span style="color:var(--green)">' + check + '</span> Verified · ' + count + ' source' + (count > 1 ? 's' : '');
-  if (shop.flavorSource === 'yelp-reviews') return '<span style="color:var(--blue)">' + check + '</span> Yelp reviews · ' + count + ' source' + (count > 1 ? 's' : '');
-  if (shop.dataSource === 'yelp') return '<span style="color:var(--blue)">' + check + '</span> Yelp rated';
-  return info + ' Estimated flavor';
+  const meta = shop._sourceMeta || BrewMapLogic.getShopSourceMeta(shop);
+  if (meta.hasWebsiteFlavor) return 'Flavor profile verified from shop data';
+  if (meta.hasReviewFlavor) return 'Flavor profile extracted from Yelp reviews';
+  if (meta.hasYelpRating) return 'Ratings verified with Yelp';
+  return 'Estimated flavor profile';
 }
 
 function flavorProfileTitle(shop) {
@@ -1176,11 +1352,12 @@ function renderStars(rating) { let h=''; for(let i=1;i<=5;i++) h+='<span class="
 function renderMapMarkers() {
   Object.values(markers).forEach(m=>map.removeLayer(m)); markers={};
   filteredShops.forEach(shop => {
-    const tf = shop.flavorTags[0]?.tag||'balanced';
+    const safeTags = getSafeFlavorTags(shop, 4);
+    const tf = safeTags[0]?.tag||'balanced';
     const mc = FLAVOR_BAR_COLORS[tf]||'#d4a053';
     const icon = L.divIcon({className:'',html:'<div class="coffee-marker" style="background:'+mc+'"><span class="coffee-marker-inner">&#9749;</span></div>',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
     const marker = L.marker([shop.lat,shop.lng],{icon}).addTo(map)
-      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)'+(shop.dataSource==='yelp'?' <span style="font-size:10px;opacity:0.7;">via Yelp</span>':'')+'</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+shop.flavorTags.slice(0,4).map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
+      .bindPopup('<div class="popup-name">'+escHtml(shop.name)+'</div><div class="popup-rating">&#9733; '+shop.rating+' ('+shop.reviewCount+' reviews)'+(shop.dataSource==='yelp'?' <span style="font-size:10px;opacity:0.7;">via Yelp</span>':'')+'</div><div class="popup-address">'+escHtml(shop.address||'')+'</div><div class="popup-flavors">'+safeTags.map(f=>'<span class="popup-flavor ft-'+f.tag+'">'+f.tag+'</span>').join('')+'</div>',{maxWidth:240});
     marker.on('click',()=>selectShop(shop.id));
     markers[shop.id] = marker;
   });
@@ -1223,7 +1400,7 @@ function selectShop(id) {
   document.getElementById('detailRating').textContent=shop.rating;
   document.getElementById('detailStars').innerHTML=renderStars(shop.rating);
   document.getElementById('detailReviewCount').innerHTML=shop.dataSource==='yelp'?shop.reviewCount+' reviews on <a href="'+escHtml(shop.yelpUrl||'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Yelp</a>':'Estimated';
-  document.getElementById('detailFlavors').innerHTML=shop.flavorTags.map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
+  document.getElementById('detailFlavors').innerHTML=getSafeFlavorTags(shop).map(f=>'<span class="shop-flavor-tag ft-'+f.tag+'">'+f.tag+' <span class="flavor-confidence">'+f.score+'%</span></span>').join('');
   const ce=Object.entries(shop.flavorProfile).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('flavorChart').innerHTML=ce.map(([fl,sc])=>'<div class="flavor-bar-row"><div class="flavor-bar-label">'+fl+'</div><div class="flavor-bar-track"><div class="flavor-bar-fill" style="width:'+sc+'%;background:'+(FLAVOR_BAR_COLORS[fl]||'#d4a053')+'"></div></div><div class="flavor-bar-pct">'+sc+'%</div></div>').join('');
   document.getElementById('reviewQuotes').innerHTML=shop.reviews.slice(0,4).map(r=>{let t=escHtml(r.text);if(r.flavorsFound)r.flavorsFound.forEach(f=>{t=t.replace(new RegExp('\\b'+f+'\\b','gi'),'<span class="highlight">'+f+'</span>');});const src=r.source==='Yelp'?(r.user?r.user+' on Yelp':'Yelp'):r.source;return '<div class="review-quote">"'+t+'"<div class="review-source">'+escHtml(src)+' &middot; &#9733; '+r.rating+'</div></div>';}).join('');
@@ -1244,20 +1421,11 @@ function closeDetail(){
 }
 
 function updateRatingFilter() {
+  clearActiveIntent();
   const val = parseFloat(document.getElementById('ratingSlider').value);
   document.getElementById('ratingLabel').textContent = val > 0 ? val.toFixed(1) : '0';
+  renderQuickIntents();
   filterShops();
-}
-
-function matchesRoastFilter(roastLevel, filterLevel) {
-  if (!filterLevel) return true;
-  if (!roastLevel) return false;
-
-  const normalized = roastLevel.toLowerCase();
-  if (filterLevel === 'light') return normalized === 'light' || normalized === 'medium-light';
-  if (filterLevel === 'medium') return normalized === 'medium' || normalized === 'medium-light' || normalized === 'medium-dark';
-  if (filterLevel === 'dark') return normalized === 'dark' || normalized === 'medium-dark';
-  return normalized.includes(filterLevel);
 }
 
 function filterShops() {
@@ -1270,18 +1438,21 @@ function filterShops() {
     if(activeFlavorFilters.size>0){const sf=new Set(shop.flavorTags.map(f=>f.tag));for(const fl of activeFlavorFilters){if(!sf.has(fl))return false;}}
     if(shop.distance>radiusMiles)return false;
     if(minRating>0&&shop.rating<minRating)return false;
-    if(!matchesRoastFilter(shop.roastLevel, activeRoastFilter))return false;
+    if(verifiedOnly&&!BrewMapLogic.isVerifiedShop(shop))return false;
+    if(!BrewMapLogic.matchesRoastFilter(shop.roastLevel, activeRoastFilter))return false;
     // Origin filter
     if(originFilter&&(!shop.beanOrigins||!shop.beanOrigins.includes(originFilter)))return false;
     return true;
   });
   // Compute flavor match scores
   filteredShops.forEach(s => { s._matchPct = flavorMatchScore(s); });
-  switch(sort){case'distance':filteredShops.sort((a,b)=>a.distance-b.distance);break;case'rating':filteredShops.sort((a,b)=>b.rating-a.rating);break;case'reviews':filteredShops.sort((a,b)=>b.reviewCount-a.reviewCount);break;case'flavor':filteredShops.sort((a,b)=>b._matchPct-a._matchPct||a.distance-b.distance);break;case'name':filteredShops.sort((a,b)=>a.name.localeCompare(b.name));break;}
-  const countText = filteredShops.length+' of '+allShops.length+' shops';
+  switch(sort){case'verified':filteredShops.sort((a,b)=>BrewMapLogic.compareByTrust(a,b));break;case'distance':filteredShops.sort((a,b)=>a.distance-b.distance||BrewMapLogic.compareByTrust(a,b));break;case'rating':filteredShops.sort((a,b)=>b.rating-a.rating||BrewMapLogic.compareByTrust(a,b));break;case'reviews':filteredShops.sort((a,b)=>b.reviewCount-a.reviewCount||BrewMapLogic.compareByTrust(a,b));break;case'flavor':filteredShops.sort((a,b)=>b._matchPct-a._matchPct||BrewMapLogic.compareByTrust(a,b));break;case'name':filteredShops.sort((a,b)=>a.name.localeCompare(b.name)||BrewMapLogic.compareByTrust(a,b));break;}
+  const verifiedCount = filteredShops.filter(shop => BrewMapLogic.isVerifiedShop(shop)).length;
+  const countText = filteredShops.length+' of '+allShops.length+' shops' + (verifiedCount ? ' · ' + verifiedCount + ' verified' : '');
   document.getElementById('resultsCount').textContent=countText;
   const a11y = document.getElementById('a11yStatus');
-  if (a11y) a11y.textContent = countText + (activeFlavorFilters.size ? ', filtered by ' + Array.from(activeFlavorFilters).join(', ') : '');
+  if (a11y) a11y.textContent = countText + (verifiedOnly ? ', verified only' : '') + (activeFlavorFilters.size ? ', filtered by ' + Array.from(activeFlavorFilters).join(', ') : '');
+  renderFeaturedRails();
   renderShopList(); renderMapMarkers();
 }
 
@@ -1304,7 +1475,9 @@ function getDistance(lat1,lon1,lat2,lon2){const R=3959;const dLat=(lat2-lat1)*Ma
 function formatDistance(miles){return miles<0.1?Math.round(miles*5280)+' ft':miles.toFixed(1)+' mi';}
 function buildAddress(tags){const p=[];if(tags['addr:housenumber']&&tags['addr:street'])p.push(tags['addr:housenumber']+' '+tags['addr:street']);else if(tags['addr:street'])p.push(tags['addr:street']);if(tags['addr:city'])p.push(tags['addr:city']);if(tags['addr:state'])p.push(tags['addr:state']);return p.join(', ');}
 function escHtml(str){const d=document.createElement('div');d.textContent=str||'';return d.innerHTML;}
-function updateLoading(text,step){document.getElementById('loadingText').textContent=text;document.getElementById('loadingStep').textContent=step;}
+function ensureLoadingOverlay(){const overlay=document.getElementById('loadingOverlay');if(document.getElementById('loadingText')&&document.getElementById('loadingStep')&&document.getElementById('skipLocationBtn'))return overlay;overlay.innerHTML='';const spinner=document.createElement('div');spinner.className='spinner';const loadingText=document.createElement('div');loadingText.className='loading-text';loadingText.id='loadingText';loadingText.textContent='Loading...';const loadingStep=document.createElement('div');loadingStep.className='loading-step';loadingStep.id='loadingStep';const skipButton=document.createElement('button');skipButton.className='skip-location-btn';skipButton.id='skipLocationBtn';skipButton.style.display='none';skipButton.textContent='Skip — search manually';skipButton.addEventListener('click',skipGeolocation);overlay.append(spinner,loadingText,loadingStep,skipButton);return overlay;}
+function updateLoading(text,step){ensureLoadingOverlay();document.getElementById('loadingText').textContent=text;document.getElementById('loadingStep').textContent=step;}
+function showScanError(message){const overlay=document.getElementById('loadingOverlay');overlay.innerHTML='';const wrapper=document.createElement('div');wrapper.style.textAlign='center';wrapper.style.padding='24px';const icon=document.createElement('div');icon.style.fontSize='40px';icon.style.marginBottom='12px';icon.innerHTML='&#9888;';const title=document.createElement('div');title.style.fontSize='16px';title.style.fontWeight='600';title.style.color='var(--text)';title.style.marginBottom='8px';title.textContent='Could not load coffee shops';const detail=document.createElement('div');detail.style.fontSize='13px';detail.style.color='var(--text2)';detail.style.marginBottom='16px';detail.textContent=message;const retryButton=document.createElement('button');retryButton.style.background='linear-gradient(135deg,var(--accent),#b8863a)';retryButton.style.color='#000';retryButton.style.border='none';retryButton.style.padding='10px 24px';retryButton.style.borderRadius='8px';retryButton.style.fontSize='14px';retryButton.style.fontWeight='600';retryButton.style.cursor='pointer';retryButton.style.fontFamily='inherit';retryButton.textContent='Retry';retryButton.addEventListener('click',()=>{ensureLoadingOverlay();updateLoading('Retrying...','');scanArea();});const dismissButton=document.createElement('button');dismissButton.style.background='var(--surface2)';dismissButton.style.color='var(--text2)';dismissButton.style.border='1px solid var(--border)';dismissButton.style.padding='10px 24px';dismissButton.style.borderRadius='8px';dismissButton.style.fontSize='14px';dismissButton.style.cursor='pointer';dismissButton.style.fontFamily='inherit';dismissButton.style.marginLeft='8px';dismissButton.textContent='Dismiss';dismissButton.addEventListener('click',()=>overlay.classList.add('hidden'));wrapper.append(icon,title,detail,retryButton,dismissButton);overlay.appendChild(wrapper);overlay.classList.remove('hidden');}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function hashCode(str){let hash=0;for(let i=0;i<str.length;i++){hash=((hash<<5)-hash)+str.charCodeAt(i);hash|=0;}return Math.abs(hash);}
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
