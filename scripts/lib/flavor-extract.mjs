@@ -44,6 +44,8 @@ for (const [tag, synonyms] of Object.entries(FLAVOR_SYNONYMS)) {
 // Sort phrases by length descending so longer phrases match first
 // ("dark roast" before "dark", "full-bodied" before "full")
 const SORTED_PHRASES = [...PHRASE_TO_TAG.keys()].sort((a, b) => b.length - a.length);
+const MIN_REVIEW_HITS_PER_TAG = 2;
+const MIN_QUALIFIED_TAGS = 2;
 
 /**
  * Extract a flavor profile from an array of review texts.
@@ -58,36 +60,46 @@ export function extractFlavorProfile(reviewTexts, fallbackProfile = null) {
     return fallbackProfile ? { flavorProfile: fallbackProfile, dataSource: 'ai-estimate' } : null;
   }
 
-  const tagCounts = {};
-  const combined = reviewTexts.join(' ').toLowerCase();
+  const tagEvidence = {};
 
-  // Count flavor mentions across all reviews
-  for (const phrase of SORTED_PHRASES) {
-    const tag = PHRASE_TO_TAG.get(phrase);
-    // Word boundary matching — avoid matching "bold" inside "Kobolds"
-    const regex = new RegExp('\\b' + escapeRegex(phrase) + '\\b', 'gi');
-    const matches = combined.match(regex);
-    if (matches) {
-      tagCounts[tag] = (tagCounts[tag] || 0) + matches.length;
+  // Count flavor mentions per review so only repeated signals survive.
+  for (const reviewText of reviewTexts) {
+    const review = reviewText.toLowerCase();
+    const tagsSeenInReview = new Set();
+
+    for (const phrase of SORTED_PHRASES) {
+      const tag = PHRASE_TO_TAG.get(phrase);
+      const regex = new RegExp('\\b' + escapeRegex(phrase) + '\\b', 'gi');
+      const matches = review.match(regex);
+      if (!matches) continue;
+
+      const evidence = tagEvidence[tag] || { mentions: 0, reviewHits: 0 };
+      evidence.mentions += matches.length;
+      if (!tagsSeenInReview.has(tag)) {
+        tagsSeenInReview.add(tag);
+        evidence.reviewHits += 1;
+      }
+      tagEvidence[tag] = evidence;
     }
   }
 
-  const mentionedTags = Object.keys(tagCounts);
+  const qualifiedEntries = Object.entries(tagEvidence)
+    .filter(([, evidence]) => evidence.reviewHits >= MIN_REVIEW_HITS_PER_TAG);
 
-  // Not enough signal — need at least 2 distinct flavor mentions
-  if (mentionedTags.length < 2) {
+  // Not enough repeat support across reviews — fall back to AI estimates.
+  if (qualifiedEntries.length < MIN_QUALIFIED_TAGS) {
     if (fallbackProfile) {
       return { flavorProfile: fallbackProfile, flavorTags: profileToTags(fallbackProfile), dataSource: 'ai-estimate' };
     }
     return null;
   }
 
-  // Normalize counts to 0-100 scores
-  const maxCount = Math.max(...Object.values(tagCounts));
+  // Normalize by combined review coverage + mention count to keep heavily repeated flavors on top.
+  const maxSupport = Math.max(...qualifiedEntries.map(([, evidence]) => (evidence.reviewHits * 2) + evidence.mentions));
   const flavorProfile = {};
-  for (const [tag, count] of Object.entries(tagCounts)) {
-    // Scale: most-mentioned = 90, others proportional, minimum 15
-    flavorProfile[tag] = Math.max(15, Math.round((count / maxCount) * 90));
+  for (const [tag, evidence] of qualifiedEntries) {
+    const support = (evidence.reviewHits * 2) + evidence.mentions;
+    flavorProfile[tag] = Math.max(20, Math.round((support / maxSupport) * 90));
   }
 
   const flavorTags = profileToTags(flavorProfile);

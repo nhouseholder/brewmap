@@ -350,7 +350,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v6.0 — Local Coffee Discovery</span>
+      <span>BrewMap v6.0.1 — Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Estimated</span>
     </div>
   </div>
@@ -1249,6 +1249,17 @@ function updateRatingFilter() {
   filterShops();
 }
 
+function matchesRoastFilter(roastLevel, filterLevel) {
+  if (!filterLevel) return true;
+  if (!roastLevel) return false;
+
+  const normalized = roastLevel.toLowerCase();
+  if (filterLevel === 'light') return normalized === 'light' || normalized === 'medium-light';
+  if (filterLevel === 'medium') return normalized === 'medium' || normalized === 'medium-light' || normalized === 'medium-dark';
+  if (filterLevel === 'dark') return normalized === 'dark' || normalized === 'medium-dark';
+  return normalized.includes(filterLevel);
+}
+
 function filterShops() {
   const search=document.getElementById('searchInput').value.toLowerCase();
   const sort=document.getElementById('sortSelect').value;
@@ -1259,8 +1270,7 @@ function filterShops() {
     if(activeFlavorFilters.size>0){const sf=new Set(shop.flavorTags.map(f=>f.tag));for(const fl of activeFlavorFilters){if(!sf.has(fl))return false;}}
     if(shop.distance>radiusMiles)return false;
     if(minRating>0&&shop.rating<minRating)return false;
-    // Roast filter — shops without roast data pass (not penalized)
-    if(activeRoastFilter&&shop.roastLevel&&!shop.roastLevel.includes(activeRoastFilter))return false;
+    if(!matchesRoastFilter(shop.roastLevel, activeRoastFilter))return false;
     // Origin filter
     if(originFilter&&(!shop.beanOrigins||!shop.beanOrigins.includes(originFilter)))return false;
     return true;
