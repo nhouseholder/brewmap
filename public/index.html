@@ -45,9 +45,11 @@
   /* ===== HEADER ===== */
   .header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;padding-top:calc(8px + var(--safe-top));background:var(--surface);border-bottom:1px solid var(--border);z-index:1000;position:relative}
   .logo{display:flex;align-items:center;gap:8px}
+  .logo-copy{display:flex;flex-direction:column;gap:2px;line-height:1}
   .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#b8863a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
   .logo-text{font-size:18px;font-weight:700;letter-spacing:-0.5px}
   .logo-text span{color:var(--accent)}
+  .logo-meta{font-size:10px;color:var(--text3);letter-spacing:0.04em;white-space:nowrap}
   .header-actions{display:flex;align-items:center;gap:8px}
   .location-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--text2)}
   .location-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
@@ -113,7 +115,7 @@
   .flavor-tag:active{transform:scale(0.95)}
   .flavor-tag.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent2)}
   .results-info{padding:8px 12px;font-size:12px;color:var(--text3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-  .shop-list{flex:1;overflow-y:auto;padding:6px;-webkit-overflow-scrolling:touch}
+  .shop-list{flex:1;overflow-y:auto;padding:6px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .shop-list::-webkit-scrollbar{width:3px}
   .shop-list::-webkit-scrollbar-track{background:transparent}
   .shop-list::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px;opacity:0.5}
@@ -147,7 +149,7 @@
   .leaflet-popup-tip{background:var(--surface)!important}
   .leaflet-popup-content{margin:10px 12px!important;font-family:'Inter',sans-serif!important}
   .popup-name{font-weight:600;font-size:13px;margin-bottom:3px}.popup-rating{color:var(--accent);font-size:12px;margin-bottom:3px}.popup-flavors{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}.popup-flavor{padding:2px 6px;border-radius:8px;font-size:10px}.popup-address{font-size:11px;color:var(--text2);margin-bottom:3px}
-  .detail-panel{position:absolute;right:12px;top:12px;width:340px;max-height:calc(100% - 24px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);z-index:600;display:none;transform:translateX(10px);opacity:0;-webkit-overflow-scrolling:touch}
+  .detail-panel{position:absolute;right:12px;top:12px;width:340px;max-height:calc(100% - 24px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);z-index:600;display:none;transform:translateX(10px);opacity:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .detail-panel.open{display:block;transform:translateX(0);opacity:1;transition:transform 0.3s ease,opacity 0.3s ease}
   .detail-header{padding:14px;border-bottom:1px solid var(--border);position:relative}
   .detail-close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
@@ -221,7 +223,7 @@
   .featured-section-header{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
   .featured-section-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)}
   .featured-section-subtitle{font-size:10px;color:var(--text3);text-align:right}
-  .featured-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .featured-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;overscroll-behavior-x:contain}
   .featured-cards::-webkit-scrollbar{display:none}
   .featured-card{min-width:150px;padding:10px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,var(--surface),rgba(28,28,28,0.94));cursor:pointer;transition:all 0.15s}
   .featured-card:hover{border-color:rgba(212,160,83,0.35);transform:translateY(-1px)}
@@ -256,7 +258,7 @@
   @media (max-width: 768px) {
     .main{flex-direction:column;height:calc(100% - 85px);position:relative}
     .map-container{flex:1;width:100%;min-height:0}
-    .sidebar{position:absolute;bottom:0;left:0;right:0;width:100%;min-width:100%;height:50%;max-height:85%;border-right:none;border-top:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;z-index:500;transition:height 0.3s cubic-bezier(0.4,0,0.2,1);will-change:height;touch-action:none}
+    .sidebar{position:absolute;bottom:0;left:0;right:0;width:100%;min-width:100%;height:50%;max-height:85%;border-right:none;border-top:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;z-index:500;transition:height 0.3s cubic-bezier(0.4,0,0.2,1);will-change:height;touch-action:auto}
     .sidebar.dragging{transition:none}
     .sidebar .sheet-handle{display:flex;align-items:center;justify-content:center;padding:10px 0 6px;cursor:grab;touch-action:none}
     .sidebar .sheet-handle-bar{width:36px;height:4px;background:var(--surface3);border-radius:2px}
@@ -265,6 +267,7 @@
     .header{padding:6px 12px;padding-top:calc(6px + var(--safe-top))}
     .logo-icon{width:28px;height:28px;font-size:14px;border-radius:6px}
     .logo-text{font-size:16px}
+    .logo-meta{font-size:9px}
     .location-badge{font-size:11px;padding:4px 8px}
     .scan-btn{padding:7px 12px;font-size:12px}
     .header-row2{padding:5px 12px;gap:6px}
@@ -296,7 +299,7 @@
 <a href="#shopList" class="skip-link">Skip to coffee shop list</a>
 <div id="a11yStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <div class="header" role="banner">
-  <div class="logo"><div class="logo-icon">&#9749;</div><div class="logo-text">Brew<span>Map</span></div></div>
+  <div class="logo"><div class="logo-icon">&#9749;</div><div class="logo-copy"><div class="logo-text">Brew<span>Map</span></div><div class="logo-meta">v6.1.1 / Apr 6, 2026</div></div></div>
   <div class="header-actions">
     <div class="location-badge"><div class="location-dot"></div><span id="locationText">Locating...</span></div>
     <button class="scan-btn" id="scanBtn" onclick="scanArea()" aria-label="Scan area for coffee shops">
@@ -397,7 +400,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v6.1.0 — Local Coffee Discovery</span>
+      <span>BrewMap v6.1.1 - Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Mixed real + estimated</span>
     </div>
   </div>
@@ -1490,8 +1493,12 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+function allowNativeTouchMove(target) {
+  return Boolean(target.closest('.sidebar') || target.closest('.detail-panel') || target.closest('.city-search-results') || target.closest('#map') || target.closest('.loading-overlay'));
+}
+
 document.body.addEventListener('touchmove', function(e) {
-  if (e.target.closest('.shop-list') || e.target.closest('.detail-panel') || e.target.closest('.flavor-filters') || e.target.closest('#map') || e.target.closest('.sheet-handle')) return;
+  if (allowNativeTouchMove(e.target)) return;
   e.preventDefault();
 }, { passive: false });
 
