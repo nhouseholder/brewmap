@@ -85,11 +85,37 @@
       (Number(a.distance) || Number.POSITIVE_INFINITY) - (Number(b.distance) || Number.POSITIVE_INFINITY);
   }
 
-  function matchesRoastFilter(roastLevel, filterLevel) {
-    if (!filterLevel) return true;
-    if (!roastLevel) return false;
+  function deriveRoastLevel(flavorProfile) {
+    if (!flavorProfile || typeof flavorProfile !== 'object') return 'medium';
+    const dark = Number(flavorProfile.dark) || 0;
+    const smoky = Number(flavorProfile.smoky) || 0;
+    const bold = Number(flavorProfile.bold) || 0;
+    const bright = Number(flavorProfile.bright) || 0;
+    const fruity = Number(flavorProfile.fruity) || 0;
+    const citrus = Number(flavorProfile.citrus) || 0;
+    const floral = Number(flavorProfile.floral) || 0;
+    const balanced = Number(flavorProfile.balanced) || 0;
+    const smooth = Number(flavorProfile.smooth) || 0;
+    const medium = Number(flavorProfile.medium) || 0;
 
-    const normalized = roastLevel.toLowerCase();
+    // Dark character: dark, smoky, bold, toasty, chocolatey
+    const darkScore = dark + smoky + bold * 0.5;
+    // Light character: bright, fruity, citrus, floral
+    const lightScore = bright + fruity + citrus + floral;
+    // Medium/neutral character: balanced, smooth, medium
+    const mediumScore = balanced + smooth + medium;
+
+    if (darkScore > lightScore && darkScore > mediumScore + 15) return 'dark';
+    if (lightScore > darkScore && lightScore > mediumScore + 15) return 'light';
+    return 'medium';
+  }
+
+  function matchesRoastFilter(roastLevel, filterLevel, flavorProfile) {
+    if (!filterLevel) return true;
+    const level = roastLevel || deriveRoastLevel(flavorProfile);
+    if (!level) return false;
+
+    const normalized = level.toLowerCase();
     if (filterLevel === 'light') return normalized === 'light' || normalized === 'medium-light';
     if (filterLevel === 'medium') return normalized === 'medium' || normalized === 'medium-light' || normalized === 'medium-dark';
     if (filterLevel === 'dark') return normalized === 'dark' || normalized === 'medium-dark';
@@ -182,6 +208,7 @@
     getShopSourceMeta,
     isVerifiedShop,
     compareByTrust,
+    deriveRoastLevel,
     matchesRoastFilter,
     buildFeaturedSections,
     getQuickIntents,

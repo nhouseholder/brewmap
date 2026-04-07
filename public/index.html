@@ -83,7 +83,10 @@
 
   .sidebar{width:400px;min-width:400px;display:flex;flex-direction:column;background:var(--bg);border-right:1px solid var(--border);z-index:500}
   .sheet-handle{display:none}
-  .controls{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+  .controls{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex-shrink:1;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .controls::-webkit-scrollbar{width:3px}
+  .controls::-webkit-scrollbar-track{background:transparent}
+  .controls::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
   .search-bar{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0 12px;transition:border-color 0.2s}
   .search-bar:focus-within{border-color:var(--accent)}
   .search-bar svg{color:var(--text3);flex-shrink:0}
@@ -104,13 +107,24 @@
   .roast-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle}
   .roast-dot.light{background:#e8d070}.roast-dot.medium{background:#d4a053}.roast-dot.dark{background:#8B5A2B}
   .origin-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text);font-size:11px;font-family:inherit;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 12L2 6h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:20px;max-width:140px}
-  .flavor-craving{margin-bottom:2px}
-  .flavor-craving-label{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
-  .flavor-craving-label button{background:none;border:none;color:var(--accent);font-size:10px;cursor:pointer;font-family:inherit;padding:0}
-  .flavor-craving-label button:hover{text-decoration:underline}
+  .filter-divider{height:1px;background:var(--border);margin:2px 0}
+  .verified-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .verified-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
+  .verified-toggle.active{border-color:rgba(93,186,125,0.45);background:rgba(93,186,125,0.12);color:#5dba7d}
+  .verified-toggle-dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:0.85}
+  .verified-toggle-caption{font-size:10px;color:var(--text3);text-align:right;max-width:150px}
+  .quick-intents{display:flex;flex-wrap:wrap;gap:6px}
+  .intent-chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
+  .intent-chip.active{border-color:rgba(93,141,232,0.45);background:rgba(93,141,232,0.14);color:#9dbfff}
+  .intent-chip:active{transform:scale(0.97)}
+  .section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+  .section-label button{background:none;border:none;color:var(--accent);font-size:10px;font-weight:500;cursor:pointer;font-family:inherit;padding:0;text-transform:none;letter-spacing:0}
+  .section-label button:hover{text-decoration:underline}
+  .flavor-category{margin-bottom:8px}
+  .flavor-category-title{font-size:9px;font-weight:600;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;opacity:0.7}
   .flavor-filters{display:flex;flex-wrap:wrap;gap:5px}
   .flavor-match-pct{font-size:11px;font-weight:600;color:var(--green);padding:2px 7px;background:rgba(93,186,125,0.12);border-radius:10px;white-space:nowrap}
-  .flavor-tag{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.15s;user-select:none;-webkit-user-select:none;font-family:inherit;-webkit-appearance:none;appearance:none;outline:none}
+  .flavor-tag{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all 0.15s;user-select:none;-webkit-user-select:none;font-family:inherit;-webkit-appearance:none;appearance:none;outline:none}
   .flavor-tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .flavor-tag:active{transform:scale(0.95)}
   .flavor-tag.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent2)}
@@ -207,16 +221,7 @@
   .refresh-btn:active{border-color:var(--accent);color:var(--accent)}
   .status-bar{padding:6px 12px;padding-bottom:calc(6px + var(--safe-bottom));background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;justify-content:space-between;align-items:center}
   .data-source-badge{display:none;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
-  .verified-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
-  .verified-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
-  .verified-toggle.active{border-color:rgba(93,186,125,0.45);background:rgba(93,186,125,0.12);color:#5dba7d}
-  .verified-toggle-dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:0.85}
-  .verified-toggle-caption{font-size:10px;color:var(--text3);text-align:right;max-width:150px}
-  .quick-intents-wrap{margin-top:10px}
-  .quick-intents{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .intent-chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;-webkit-appearance:none}
-  .intent-chip.active{border-color:rgba(93,141,232,0.45);background:rgba(93,141,232,0.14);color:#9dbfff}
-  .intent-chip:active{transform:scale(0.97)}
+  /* verified-toggle and quick-intents styles moved to controls block */
   .featured-rails{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg, rgba(93,141,232,0.05), transparent)}
   .featured-rails:empty{display:none}
   .featured-section{display:flex;flex-direction:column;gap:6px}
@@ -299,7 +304,7 @@
 <a href="#shopList" class="skip-link">Skip to coffee shop list</a>
 <div id="a11yStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <div class="header" role="banner">
-  <div class="logo"><div class="logo-icon">&#9749;</div><div class="logo-copy"><div class="logo-text">Brew<span>Map</span></div><div class="logo-meta">v6.1.1 / Apr 6, 2026</div></div></div>
+  <div class="logo"><div class="logo-icon">&#9749;</div><div class="logo-copy"><div class="logo-text">Brew<span>Map</span></div><div class="logo-meta">v6.2.0 / Jun 22, 2025</div></div></div>
   <div class="header-actions">
     <div class="location-badge"><div class="location-dot"></div><span id="locationText">Locating...</span></div>
     <button class="scan-btn" id="scanBtn" onclick="scanArea()" aria-label="Scan area for coffee shops">
@@ -376,14 +381,12 @@
         </button>
         <span class="verified-toggle-caption" id="verifiedOnlyCaption">Review-backed and website-backed shops only</span>
       </div>
-      <div class="quick-intents-wrap">
-        <div class="flavor-craving-label"><span>Quick ways in</span></div>
-        <div class="quick-intents" id="quickIntents" role="group" aria-label="Quick discovery intents"></div>
-      </div>
-      <div class="flavor-craving">
-        <div class="flavor-craving-label"><span>What flavor are you craving?</span><button id="clearFlavorsBtn" onclick="clearFlavorSelection()" style="display:none">Clear</button></div>
-        <div class="flavor-filters" id="flavorFilters" role="group" aria-label="Flavor filters"></div>
-      </div>
+      <div class="filter-divider"></div>
+      <div class="section-label"><span>Quick ways in</span></div>
+      <div class="quick-intents" id="quickIntents" role="group" aria-label="Quick discovery intents"></div>
+      <div class="filter-divider"></div>
+      <div class="section-label"><span>Flavor profile</span><button id="clearFlavorsBtn" onclick="clearFlavorSelection()" style="display:none">Clear</button></div>
+      <div id="flavorFilters" role="group" aria-label="Flavor filters"></div>
     </div>
     <div class="results-info">
       <span id="resultsCount">Scanning for shops...</span>
@@ -400,7 +403,7 @@
       <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w40 h8"></div><div class="skeleton-line w80 h8"></div></div>
     </div>
     <div class="status-bar">
-      <span>BrewMap v6.1.1 - Local Coffee Discovery</span>
+      <span>BrewMap v6.2.0 - Local Coffee Discovery</span>
       <span>Locations: OpenStreetMap · Flavors: Mixed real + estimated</span>
     </div>
   </div>
@@ -788,28 +791,41 @@ function initMap() {
 
 function renderFlavorFilters() {
   const c = document.getElementById('flavorFilters'); c.innerHTML = '';
-  // Show popular flavors first, rest after
-  const popular = ['bold','dark','smooth','chocolatey','fruity','bright','nutty','caramel','rich','sweet','balanced','earthy'];
-  const rest = FLAVOR_TAGS.filter(t => !popular.includes(t));
-  const ordered = [...popular, ...rest];
-  ordered.forEach(tag => {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'flavor-tag ' + (activeFlavorFilters.has(tag) ? 'active' : '');
-    el.textContent = tag;
-    el.setAttribute('aria-pressed', activeFlavorFilters.has(tag) ? 'true' : 'false');
-    el.onclick = () => {
-      clearActiveIntent();
-      if (activeFlavorFilters.has(tag)) activeFlavorFilters.delete(tag);
-      else activeFlavorFilters.add(tag);
-      // Auto-switch to flavor match sort when flavors selected
-      if (activeFlavorFilters.size > 0) document.getElementById('sortSelect').value = 'flavor';
-      else if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
-      renderFlavorFilters(); renderQuickIntents(); filterShops();
-    };
-    c.appendChild(el);
+  const categories = [
+    { title: 'Roast character', tags: ['dark','bold','rich','toasty','smoky'] },
+    { title: 'Balanced & smooth', tags: ['medium','balanced','smooth','clean','mild'] },
+    { title: 'Bright & fruity', tags: ['bright','fruity','tart','citrus','berry','floral'] },
+    { title: 'Sweet & rich', tags: ['sweet','caramel','vanilla','chocolatey','nutty'] },
+    { title: 'Earthy & complex', tags: ['earthy','spicy','herbal','complex','acidic'] },
+  ];
+  categories.forEach(cat => {
+    const section = document.createElement('div');
+    section.className = 'flavor-category';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'flavor-category-title';
+    titleEl.textContent = cat.title;
+    section.appendChild(titleEl);
+    const wrap = document.createElement('div');
+    wrap.className = 'flavor-filters';
+    cat.tags.forEach(tag => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'flavor-tag ' + (activeFlavorFilters.has(tag) ? 'active' : '');
+      el.textContent = tag;
+      el.setAttribute('aria-pressed', activeFlavorFilters.has(tag) ? 'true' : 'false');
+      el.onclick = () => {
+        clearActiveIntent();
+        if (activeFlavorFilters.has(tag)) activeFlavorFilters.delete(tag);
+        else activeFlavorFilters.add(tag);
+        if (activeFlavorFilters.size > 0) document.getElementById('sortSelect').value = 'flavor';
+        else if (document.getElementById('sortSelect').value === 'flavor') document.getElementById('sortSelect').value = 'distance';
+        renderFlavorFilters(); renderQuickIntents(); filterShops();
+      };
+      wrap.appendChild(el);
+    });
+    section.appendChild(wrap);
+    c.appendChild(section);
   });
-  // Show/hide clear button
   document.getElementById('clearFlavorsBtn').style.display = activeFlavorFilters.size > 0 ? 'inline' : 'none';
 }
 
@@ -820,7 +836,8 @@ function getSafeFlavorTags(shop, limit = 5) {
 function hydrateShop(shop) {
   const flavorTags = getSafeFlavorTags(shop);
   const sourceMeta = BrewMapLogic.getShopSourceMeta(shop);
-  return { ...shop, flavorTags, _sourceMeta: sourceMeta };
+  const roastLevel = shop.roastLevel || BrewMapLogic.deriveRoastLevel(shop.flavorProfile);
+  return { ...shop, flavorTags, _sourceMeta: sourceMeta, roastLevel };
 }
 
 function clearActiveIntent() {
@@ -1442,7 +1459,7 @@ function filterShops() {
     if(shop.distance>radiusMiles)return false;
     if(minRating>0&&shop.rating<minRating)return false;
     if(verifiedOnly&&!BrewMapLogic.isVerifiedShop(shop))return false;
-    if(!BrewMapLogic.matchesRoastFilter(shop.roastLevel, activeRoastFilter))return false;
+    if(!BrewMapLogic.matchesRoastFilter(shop.roastLevel, activeRoastFilter, shop.flavorProfile))return false;
     // Origin filter
     if(originFilter&&(!shop.beanOrigins||!shop.beanOrigins.includes(originFilter)))return false;
     return true;
